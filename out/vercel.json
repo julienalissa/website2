@@ -2,10 +2,16 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "framework": null,
+  "cleanUrls": false,
+  "trailingSlash": true,
   "rewrites": [
     {
-      "source": "/(.*)",
-      "destination": "/$1"
+      "source": "/admin",
+      "destination": "/admin/index.html"
+    },
+    {
+      "source": "/admin/",
+      "destination": "/admin/index.html"
     }
   ]
 }

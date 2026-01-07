@@ -42,7 +42,7 @@ export default function AdminPage() {
   const [loginStep, setLoginStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<"menu" | "drinks">("menu");
+  const [activeTab, setActiveTab] = useState<"menu" | "drinks" | "home" | "about" | "contact" | "events" | "gallery" | "restaurant">("menu");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [drinkItems, setDrinkItems] = useState<DrinkItem[]>([]);
   const [editingItem, setEditingItem] = useState<MenuItem | DrinkItem | null>(null);
@@ -51,6 +51,12 @@ export default function AdminPage() {
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [rebuildStatus, setRebuildStatus] = useState<"idle" | "rebuilding" | "success" | "error">("idle");
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+  
+  // États pour le CMS
+  const [pageContent, setPageContent] = useState<Record<string, any>>({});
+  const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
+  const [galleryImages, setGalleryImages] = useState<any[]>([]);
+  const [editingBlock, setEditingBlock] = useState<any>(null);
 
   // Grouper les éléments par catégorie
   const menuItemsByCategory = menuItems.reduce((acc, item) => {
@@ -602,38 +608,130 @@ export default function AdminPage() {
       )}
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Tabs modernes */}
-        <div className="flex gap-2 mb-8 bg-white p-2 rounded-xl shadow-lg border border-gray-200">
-          <button
-            onClick={() => setActiveTab("menu")}
-            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
-              activeTab === "menu"
-                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <span className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-              </svg>
-              Menu
-            </span>
-          </button>
-          <button
-            onClick={() => setActiveTab("drinks")}
-            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
-              activeTab === "drinks"
-                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
-                : "text-gray-600 hover:bg-gray-100"
-            }`}
-          >
-            <span className="flex items-center justify-center gap-2">
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-              Boissons
-            </span>
-          </button>
+        {/* Tabs modernes - Navigation complète */}
+        <div className="mb-8 bg-white p-2 rounded-xl shadow-lg border border-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+            <button
+              onClick={() => setActiveTab("home")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "home"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                </svg>
+                Accueil
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("about")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "about"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Notre Histoire
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("contact")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "contact"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+                Contact
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("events")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "events"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Événements
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("menu")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "menu"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+                </svg>
+                Menu
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("drinks")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "drinks"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                </svg>
+                Boissons
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("gallery")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "gallery"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                Galerie
+              </span>
+            </button>
+            <button
+              onClick={() => setActiveTab("restaurant")}
+              className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
+                activeTab === "restaurant"
+                  ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                </svg>
+                Restaurant
+              </span>
+            </button>
+          </div>
         </div>
 
         {/* Menu Items */}
@@ -847,6 +945,695 @@ export default function AdminPage() {
                   </div>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {/* Page d'Accueil */}
+        {activeTab === "home" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">Modifier la Page d'Accueil</h2>
+              <p className="text-gray-600 mb-6">Modifiez tous les textes de la page d'accueil</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Titre Principal (Hero)
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Le Savoré"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    placeholder="Titre principal"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Slogan
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Fine Dining en Suisse"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    placeholder="Slogan"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Description Principale
+                  </label>
+                  <SimpleRichTextEditor
+                    value="Découvrez une cuisine méditerranéenne de saison, élaborée avec la qualité suisse et le souci du détail dans une atmosphère élégante et accueillante."
+                    onChange={() => {}}
+                    placeholder="Description de votre restaurant..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Excellence de Saison" - Titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Excellence de Saison"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Excellence de Saison" - Description
+                  </label>
+                  <SimpleRichTextEditor
+                    value="Chez Le Savoré, nous célébrons une cuisine méditerranéenne de saison avec la précision et la qualité suisses. Chaque plat reflète notre engagement envers l'approvisionnement local, l'artisanat culinaire et une expérience de restauration élégante et accessible."
+                    onChange={() => {}}
+                    placeholder="Description..."
+                  />
+                </div>
+                
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
+                  Sauvegarder les modifications
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Page Notre Histoire */}
+        {activeTab === "about" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">Modifier la Page "Notre Histoire"</h2>
+              <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Notre Histoire</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Titre de la Page
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Notre Histoire"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Héritage" - Titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Notre Héritage"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Héritage" - Paragraphe 1
+                  </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Premier paragraphe de l'histoire..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Héritage" - Paragraphe 2
+                  </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Deuxième paragraphe..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Héritage" - Paragraphe 3
+                  </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Troisième paragraphe..."
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Philosophie" - Titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Notre Philosophie"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Qualité Suisse - Description
+                    </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description de la qualité suisse..."
+                  />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Cuisine de Saison - Description
+                    </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description de la cuisine de saison..."
+                  />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Artisanat Culinaire - Description
+                    </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description de l'artisanat culinaire..."
+                  />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Hospitalité - Description
+                    </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description de l'hospitalité..."
+                  />
+                  </div>
+                </div>
+                
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
+                  Sauvegarder les modifications
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Page Contact */}
+        {activeTab === "contact" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">Modifier la Page Contact</h2>
+              <p className="text-gray-600 mb-6">Modifiez les informations de contact et les textes</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Titre de la Page
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Contact"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Prendre Contact" - Titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Prendre Contact"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Prendre Contact" - Description
+                  </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description de la section contact..."
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Adresse
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.address || "Rue Sous-le-Pré 19A, 2014 Bôle"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Téléphone
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.phone || "+41 76 630 73 10"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Email
+                    </label>
+                    <input
+                      type="email"
+                      defaultValue={restaurantInfo?.email || "info@lesavore.ch"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Section "Envoyer un Message" - Titre
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Envoyer un Message"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-7 gap-2">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Lundi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_monday || "Fermé"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Mardi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_tuesday || "10h00–14h00, 18h00–22h00"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Mercredi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_wednesday || "10h00–14h00, 18h00–22h00"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Jeudi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_thursday || "10h00–14h00, 18h00–22h00"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Vendredi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_friday || "11h30–13h30, 18h00–21h30"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Samedi</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_saturday || "18h00–23h00"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">Dimanche</label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.hours_sunday || "Fermé"}
+                      className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                    />
+                  </div>
+                </div>
+                
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
+                  Sauvegarder les modifications
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Page Événements */}
+        {activeTab === "events" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">Modifier la Page Événements</h2>
+              <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Événements</p>
+              
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Titre de la Page
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Événements Privés & Célébrations"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Sous-titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Créez des moments inoubliables"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Types d'Événements" - Titre
+                  </label>
+                  <input
+                    type="text"
+                    defaultValue="Types d'Événements"
+                    className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Section "Types d'Événements" - Description
+                  </label>
+                  <SimpleRichTextEditor
+                    value=""
+                    onChange={() => {}}
+                    placeholder="Description des types d'événements..."
+                  />
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800">Types d'Événements</h3>
+                  
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Petit Mariage - Titre
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Petit Mariage"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
+                    />
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Petit Mariage - Description
+                    </label>
+                    <SimpleRichTextEditor
+                      value=""
+                      onChange={() => {}}
+                      placeholder="Description du petit mariage..."
+                    />
+                  </div>
+                  
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Baptême / Anniversaire - Titre
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Baptême / Anniversaire"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
+                    />
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Baptême / Anniversaire - Description
+                    </label>
+                    <SimpleRichTextEditor
+                      value=""
+                      onChange={() => {}}
+                      placeholder="Description..."
+                    />
+                  </div>
+                  
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Repas d'Entreprise - Titre
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Repas d'Entreprise"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
+                    />
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Repas d'Entreprise - Description
+                    </label>
+                    <SimpleRichTextEditor
+                      value=""
+                      onChange={() => {}}
+                      placeholder="Description..."
+                    />
+                  </div>
+                  
+                  <div className="border border-gray-200 rounded-lg p-4">
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Repas après Cérémonie - Titre
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue="Repas après Cérémonie"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
+                    />
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Repas après Cérémonie - Description
+                    </label>
+                    <SimpleRichTextEditor
+                      value=""
+                      onChange={() => {}}
+                      placeholder="Description..."
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  <h3 className="text-lg font-bold text-gray-800">Services</h3>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    {["Menus Personnalisés", "Service Dédié", "Atmosphère Élégante", "Qualité Suisse"].map((service) => (
+                      <div key={service} className="border border-gray-200 rounded-lg p-4">
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">
+                          {service} - Titre
+                        </label>
+                        <input
+                          type="text"
+                          defaultValue={service}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
+                        />
+                        <label className="block text-sm font-semibold mb-2 text-gray-700">
+                          {service} - Description
+                        </label>
+                        <textarea
+                          rows={3}
+                          className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                          placeholder="Description..."
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
+                  Sauvegarder les modifications
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Galerie */}
+        {activeTab === "gallery" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <div className="flex justify-between items-center mb-6">
+                <div>
+                  <h2 className="text-2xl font-bold mb-2">Galerie Photos</h2>
+                  <p className="text-gray-600">Gérez toutes les images de la galerie</p>
+                </div>
+                <button className="px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all flex items-center gap-2">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                  Ajouter une Image
+                </button>
+              </div>
+              
+              {galleryImages.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-lg mb-4">Aucune image dans la galerie</p>
+                  <button className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 font-semibold">
+                    Ajouter la première image
+                  </button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {galleryImages.map((image) => (
+                    <div key={image.id} className="relative group border border-gray-200 rounded-lg overflow-hidden">
+                      <div className="aspect-square bg-gray-100">
+                        <img
+                          src={image.image_url || image.src || ""}
+                          alt={image.alt_text || image.alt || ""}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                        <button className="px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm">
+                          Modifier
+                        </button>
+                        <button className="px-3 py-2 bg-red-600 text-white rounded hover:bg-red-700 text-sm">
+                          Supprimer
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Informations Restaurant */}
+        {activeTab === "restaurant" && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-2xl font-bold mb-4">Informations du Restaurant</h2>
+              <p className="text-gray-600 mb-6">Modifiez les informations générales du restaurant</p>
+              
+              <div className="space-y-6">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Nom du Restaurant <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.name || "Le Savoré"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Slogan <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.tagline || "Fine Dining en Suisse"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-2 text-gray-700">
+                    Description <span className="text-red-500">*</span>
+                  </label>
+                  <SimpleRichTextEditor
+                    value={restaurantInfo?.description || ""}
+                    onChange={() => {}}
+                    placeholder="Description du restaurant..."
+                  />
+                </div>
+                
+                <div className="grid grid-cols-3 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Adresse <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.address || "Rue Sous-le-Pré 19A, 2014 Bôle"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Téléphone <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      defaultValue={restaurantInfo?.phone || "+41 76 630 73 10"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email"
+                      defaultValue={restaurantInfo?.email || "info@lesavore.ch"}
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-semibold mb-4 text-gray-700">
+                    Horaires d'Ouverture
+                  </label>
+                  <div className="grid grid-cols-7 gap-2">
+                    {[
+                      { day: "Lundi", key: "hours_monday" },
+                      { day: "Mardi", key: "hours_tuesday" },
+                      { day: "Mercredi", key: "hours_wednesday" },
+                      { day: "Jeudi", key: "hours_thursday" },
+                      { day: "Vendredi", key: "hours_friday" },
+                      { day: "Samedi", key: "hours_saturday" },
+                      { day: "Dimanche", key: "hours_sunday" }
+                    ].map(({ day, key }) => (
+                      <div key={key}>
+                        <label className="block text-xs font-semibold mb-1 text-gray-600">{day}</label>
+                        <input
+                          type="text"
+                          defaultValue={restaurantInfo?.[key] || ""}
+                          className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
+                          placeholder="Ex: 10h-22h"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
+                  Sauvegarder les modifications
+                </button>
+              </div>
             </div>
           </div>
         )}

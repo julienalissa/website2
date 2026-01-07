@@ -1,11 +1,11 @@
 {
   "/_not-found/page": "/_not-found",
-  "/about/page": "/about",
   "/contact/page": "/contact",
+  "/admin/page": "/admin",
   "/drinks/page": "/drinks",
-  "/events/page": "/events",
   "/menu/page": "/menu",
   "/gallery/page": "/gallery",
-  "/admin/page": "/admin",
-  "/page": "/"
+  "/events/page": "/events",
+  "/page": "/",
+  "/about/page": "/about"
 }

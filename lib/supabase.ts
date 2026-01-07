@@ -8,7 +8,14 @@ if (!supabaseUrl || !supabaseAnonKey) {
   console.warn('⚠️ Variables Supabase non configurées. Veuillez définir NEXT_PUBLIC_SUPABASE_URL et NEXT_PUBLIC_SUPABASE_ANON_KEY')
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    redirectTo: typeof window !== 'undefined' ? window.location.origin + '/admin' : undefined,
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: true
+  }
+})
 
 // Types pour la base de données
 export interface Reservation {

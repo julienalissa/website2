@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import Link from "next/link";
 import { motion } from "framer-motion";
@@ -8,6 +10,7 @@ import { restaurantInfo } from "@/lib/data";
 import { useReservation } from "@/components/ReservationProvider";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { useOpeningStatus } from "@/hooks/useOpeningStatus";
+import { supabase } from "@/lib/supabase";
 
 // Animation variants for scroll reveals
 const sectionVariants = {
@@ -47,9 +50,50 @@ const imageVariants = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const { openReservation } = useReservation();
   const { t } = useLanguage();
   const { isBeforeOpening, isOpeningDay } = useOpeningStatus();
+
+  // Gérer la redirection après authentification via Magic Link
+  useEffect(() => {
+    const handleAuthCallback = async () => {
+      if (typeof window === 'undefined') return;
+
+      // Vérifier si l'URL contient un hash avec un token (format: #access_token=... ou #type=...)
+      const hash = window.location.hash;
+      if (hash && (hash.includes('access_token') || hash.includes('type='))) {
+        try {
+          // Laisser Supabase traiter le hash et récupérer la session
+          const { data: { session }, error } = await supabase.auth.getSession();
+          
+          if (session && !error) {
+            // Attendre un peu pour que la session soit bien établie
+            setTimeout(() => {
+              router.push('/admin');
+              // Nettoyer l'URL
+              window.history.replaceState({}, document.title, window.location.pathname);
+            }, 500);
+          }
+        } catch (error) {
+          console.error("Erreur lors de la vérification de la session:", error);
+        }
+      }
+    };
+
+    handleAuthCallback();
+
+    // Écouter les changements d'état d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session) {
+        router.push('/admin');
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   return (
     <>

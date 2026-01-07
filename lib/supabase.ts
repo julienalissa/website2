@@ -10,7 +10,6 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
-    redirectTo: typeof window !== 'undefined' ? window.location.origin + '/admin' : undefined,
     autoRefreshToken: true,
     persistSession: true,
     detectSessionInUrl: true

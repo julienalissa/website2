@@ -91,7 +91,9 @@ export default function HomePage() {
     });
 
     return () => {
-      subscription.unsubscribe();
+      if (subscription) {
+        subscription.unsubscribe();
+      }
     };
   }, [router]);
 

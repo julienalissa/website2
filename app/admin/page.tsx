@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import type { MenuItem, DrinkItem } from "@/lib/data";
+import { supabase } from "@/lib/supabase";
 import {
   getMenuItems,
   getDrinkItems,
@@ -12,9 +13,6 @@ import {
   updateDrinkItem,
   deleteDrinkItem
 } from "@/lib/supabase-admin";
-
-// Mot de passe admin - Peut être défini via NEXT_PUBLIC_ADMIN_PASSWORD ou utiliser la valeur par défaut
-const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "Papaz123123";
 
 // Catégories de menu
 const MENU_CATEGORIES = [
@@ -37,11 +35,13 @@ const DRINK_CATEGORIES = [
 
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [loginLoading, setLoginLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"menu" | "drinks">("menu");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [drinkItems, setDrinkItems] = useState<DrinkItem[]>([]);
-  const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | DrinkItem | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
@@ -78,13 +78,33 @@ export default function AdminPage() {
   };
 
   useEffect(() => {
-    // Vérifier si l'utilisateur est déjà authentifié
-    const auth = localStorage.getItem("admin_authenticated");
-    if (auth === "true") {
-      setIsAuthenticated(true);
-      loadData();
-    }
+    // Vérifier la session Supabase au chargement
+    checkSession();
+    
+    // Écouter les changements d'authentification
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsAuthenticated(!!session);
+      if (session) {
+        loadData();
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
+
+  const checkSession = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        setIsAuthenticated(true);
+        loadData();
+      }
+    } catch (error) {
+      console.error("Erreur lors de la vérification de la session:", error);
+    }
+  };
 
   // Ouvrir toutes les catégories par défaut quand les données sont chargées
   useEffect(() => {
@@ -97,20 +117,49 @@ export default function AdminPage() {
     }
   }, [menuItems.length, drinkItems.length]);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password === ADMIN_PASSWORD) {
-      setIsAuthenticated(true);
-      localStorage.setItem("admin_authenticated", "true");
-      loadData();
-    } else {
-      alert("Mot de passe incorrect");
+    setLoginLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email.trim(),
+        password: password
+      });
+
+      if (error) {
+        console.error("Erreur de connexion:", error);
+        showNotification("Email ou mot de passe incorrect", "error");
+        setLoginLoading(false);
+        return;
+      }
+
+      if (data.session) {
+        setIsAuthenticated(true);
+        setEmail("");
+        setPassword("");
+        showNotification("Connexion réussie !", "success");
+        await loadData();
+      }
+    } catch (error) {
+      console.error("Erreur:", error);
+      showNotification("Une erreur est survenue lors de la connexion", "error");
+    } finally {
+      setLoginLoading(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("admin_authenticated");
+  const handleLogout = async () => {
+    try {
+      await supabase.auth.signOut();
+      setIsAuthenticated(false);
+      setMenuItems([]);
+      setDrinkItems([]);
+      showNotification("Déconnexion réussie", "success");
+    } catch (error) {
+      console.error("Erreur lors de la déconnexion:", error);
+      showNotification("Erreur lors de la déconnexion", "error");
+    }
   };
 
   const loadData = async () => {
@@ -289,9 +338,21 @@ export default function AdminPage() {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
-          <h1 className="text-2xl font-bold mb-6 text-center">Administration</h1>
-          <form onSubmit={handleLogin}>
-            <div className="mb-4">
+          <h1 className="text-2xl font-bold mb-6 text-center">Administration - Le Savoré</h1>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-2">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 border rounded-lg"
+                placeholder="votre-email@exemple.com"
+                required
+                disabled={loginLoading}
+              />
+            </div>
+            <div>
               <label className="block text-sm font-medium mb-2">Mot de passe</label>
               <input
                 type="password"
@@ -299,15 +360,30 @@ export default function AdminPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg"
                 required
+                disabled={loginLoading}
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700"
+              disabled={loginLoading}
+              className={`w-full py-2 rounded-lg text-white ${
+                loginLoading 
+                  ? "bg-gray-400 cursor-not-allowed" 
+                  : "bg-blue-600 hover:bg-blue-700"
+              }`}
             >
-              Se connecter
+              {loginLoading ? "Connexion..." : "Se connecter"}
             </button>
           </form>
+          {notification && (
+            <div className={`mt-4 p-3 rounded-lg text-sm ${
+              notification.type === "error" 
+                ? "bg-red-100 text-red-700" 
+                : "bg-green-100 text-green-700"
+            }`}>
+              {notification.message}
+            </div>
+          )}
         </div>
       </div>
     );

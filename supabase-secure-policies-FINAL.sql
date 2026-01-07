@@ -10,9 +10,15 @@ CREATE TABLE IF NOT EXISTS admin_users (
 );
 
 -- Insérer votre email admin (ne fera rien si déjà présent)
+-- ⚠️ IMPORTANT : Utilisez LOWER pour éviter les problèmes de casse
 INSERT INTO admin_users (email)
-VALUES ('Lesavorech@gmail.com')
+VALUES ('lesavorech@gmail.com')
 ON CONFLICT (email) DO NOTHING;
+
+-- Si vous avez déjà l'email avec une majuscule, mettez-le à jour :
+UPDATE admin_users 
+SET email = 'lesavorech@gmail.com' 
+WHERE LOWER(email) = 'lesavorech@gmail.com' AND email != 'lesavorech@gmail.com';
 
 -- Activer RLS sur admin_users
 ALTER TABLE admin_users ENABLE ROW LEVEL SECURITY;
@@ -30,12 +36,13 @@ CREATE POLICY "Admins can read admin_users" ON admin_users
   );
 
 -- ÉTAPE 2 : Créer ou remplacer la fonction pour vérifier si l'utilisateur est admin
+-- ⚠️ IMPORTANT : Cette fonction compare les emails sans tenir compte de la casse (LOWER)
 CREATE OR REPLACE FUNCTION is_admin()
 RETURNS BOOLEAN AS $$
 BEGIN
   RETURN EXISTS (
     SELECT 1 FROM admin_users
-    WHERE email = auth.jwt() ->> 'email'
+    WHERE LOWER(email) = LOWER(auth.jwt() ->> 'email')
   );
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
@@ -98,3 +105,4 @@ CREATE POLICY "Admins can update drink_items" ON drink_items
 -- Pour vérifier que tout fonctionne, exécutez :
 -- SELECT * FROM admin_users;
 -- Vous devriez voir votre email admin dans la liste
+                                                                                

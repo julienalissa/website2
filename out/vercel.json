@@ -1,17 +1,18 @@
 {
-  "buildCommand": null,
-  "outputDirectory": ".",
-  "framework": null,
-  "cleanUrls": false,
-  "trailingSlash": true,
-  "rewrites": [
+  "version": 2,
+  "builds": [],
+  "routes": [
     {
-      "source": "/admin",
-      "destination": "/admin/index.html"
+      "src": "/admin",
+      "dest": "/admin/index.html"
     },
     {
-      "source": "/admin/",
-      "destination": "/admin/index.html"
+      "src": "/admin/",
+      "dest": "/admin/index.html"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
     }
   ]
 }

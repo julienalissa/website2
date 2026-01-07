@@ -132,20 +132,39 @@ export default function AdminPage() {
 
   const handleSaveMenuItem = async (item: Partial<MenuItem>) => {
     try {
+      // Vérifier que tous les champs requis sont présents
+      if (!item.name || !item.category || item.price === undefined) {
+        throw new Error("Veuillez remplir tous les champs obligatoires (Nom, Catégorie, Prix)");
+      }
+
       if (isNew && editingItem) {
-        await createMenuItem(item as MenuItem);
+        await createMenuItem({
+          name: item.name,
+          description: item.description || "",
+          price: item.price,
+          category: item.category,
+          tags: item.tags || []
+        });
       } else if (editingItem) {
-        await updateMenuItem(editingItem.id, item);
+        await updateMenuItem(editingItem.id, {
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          category: item.category,
+          tags: item.tags
+        });
       }
       await loadData();
       setEditingItem(null);
       setIsNew(false);
+      setSelectedCategory("");
       showNotification("Élément sauvegardé ! Mise à jour du site en cours...", "success");
       // Déclencher le rebuild automatiquement
       await triggerRebuild();
     } catch (error) {
       console.error("Erreur:", error);
-      showNotification("Erreur lors de la sauvegarde", "error");
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      showNotification(`Erreur: ${errorMessage}`, "error");
     }
   };
 
@@ -164,19 +183,36 @@ export default function AdminPage() {
 
   const handleSaveDrinkItem = async (item: Partial<DrinkItem>) => {
     try {
+      // Vérifier que tous les champs requis sont présents
+      if (!item.name || !item.category || item.price === undefined) {
+        throw new Error("Veuillez remplir tous les champs obligatoires (Nom, Catégorie, Prix)");
+      }
+
       if (isNew && editingItem) {
-        await createDrinkItem(item as DrinkItem);
+        await createDrinkItem({
+          name: item.name,
+          description: item.description || "",
+          price: item.price,
+          category: item.category as "cocktail" | "wine" | "beer" | "non-alcoholic"
+        });
       } else if (editingItem) {
-        await updateDrinkItem(editingItem.id, item);
+        await updateDrinkItem(editingItem.id, {
+          name: item.name,
+          description: item.description,
+          price: item.price,
+          category: item.category as "cocktail" | "wine" | "beer" | "non-alcoholic"
+        });
       }
       await loadData();
       setEditingItem(null);
       setIsNew(false);
+      setSelectedCategory("");
       showNotification("Boisson sauvegardée ! Mise à jour du site en cours...", "success");
       await triggerRebuild();
     } catch (error) {
       console.error("Erreur:", error);
-      showNotification("Erreur lors de la sauvegarde", "error");
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
+      showNotification(`Erreur: ${errorMessage}`, "error");
     }
   };
 

@@ -1,22 +1,16 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { supabase } from "@/lib/supabase";
-import type { MenuItem, DrinkItem, GalleryImage } from "@/lib/data";
+import type { MenuItem, DrinkItem } from "@/lib/data";
 import {
   getMenuItems,
   getDrinkItems,
-  getGalleryImages,
   createMenuItem,
   updateMenuItem,
   deleteMenuItem,
   createDrinkItem,
   updateDrinkItem,
-  deleteDrinkItem,
-  createGalleryImage,
-  updateGalleryImage,
-  deleteGalleryImage,
-  uploadImage
+  deleteDrinkItem
 } from "@/lib/supabase-admin";
 
 // Mot de passe admin - Peut être défini via NEXT_PUBLIC_ADMIN_PASSWORD ou utiliser la valeur par défaut
@@ -25,12 +19,11 @@ const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "Papaz123123";
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
-  const [activeTab, setActiveTab] = useState<"menu" | "drinks" | "gallery">("menu");
+  const [activeTab, setActiveTab] = useState<"menu" | "drinks">("menu");
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [drinkItems, setDrinkItems] = useState<DrinkItem[]>([]);
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editingItem, setEditingItem] = useState<MenuItem | DrinkItem | GalleryImage | null>(null);
+  const [editingItem, setEditingItem] = useState<MenuItem | DrinkItem | null>(null);
   const [isNew, setIsNew] = useState(false);
   const [rebuildStatus, setRebuildStatus] = useState<"idle" | "rebuilding" | "success" | "error">("idle");
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
@@ -63,14 +56,12 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [menu, drinks, gallery] = await Promise.all([
+      const [menu, drinks] = await Promise.all([
         getMenuItems(),
-        getDrinkItems(),
-        getGalleryImages()
+        getDrinkItems()
       ]);
       setMenuItems(menu);
       setDrinkItems(drinks);
-      setGalleryImages(gallery);
     } catch (error) {
       console.error("Erreur lors du chargement:", error);
       alert("Erreur lors du chargement des données");
@@ -142,59 +133,6 @@ export default function AdminPage() {
     }
   };
 
-  const handleSaveGalleryImage = async (item: Partial<GalleryImage>) => {
-    try {
-      if (isNew && editingItem) {
-        await createGalleryImage(item as GalleryImage);
-      } else if (editingItem) {
-        await updateGalleryImage(editingItem.id, item);
-      }
-      await loadData();
-      setEditingItem(null);
-      setIsNew(false);
-      showNotification("Image sauvegardée ! Mise à jour du site en cours...", "success");
-      await triggerRebuild();
-    } catch (error) {
-      console.error("Erreur:", error);
-      showNotification("Erreur lors de la sauvegarde", "error");
-    }
-  };
-
-  const handleDeleteGalleryImage = async (id: string) => {
-    if (!confirm("Êtes-vous sûr de vouloir supprimer cette image ?")) return;
-    try {
-      await deleteGalleryImage(id);
-      await loadData();
-      showNotification("Image supprimée ! Mise à jour du site en cours...", "success");
-      await triggerRebuild();
-    } catch (error) {
-      console.error("Erreur:", error);
-      showNotification("Erreur lors de la suppression", "error");
-    }
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    try {
-      setLoading(true);
-      const path = `gallery/${Date.now()}_${file.name}`;
-      const url = await uploadImage(file, path);
-      if (editingItem) {
-        await handleSaveGalleryImage({ ...editingItem, src: url });
-      } else {
-        // Si on n'est pas en mode édition, créer un nouvel élément
-        await handleSaveGalleryImage({ src: url, alt: file.name });
-      }
-      showNotification("Image uploadée avec succès !", "success");
-    } catch (error) {
-      console.error("Erreur lors de l'upload:", error);
-      showNotification(`Erreur lors de l'upload: ${error instanceof Error ? error.message : 'Erreur inconnue'}`, "error");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   // Fonction pour déclencher le rebuild Vercel via Deploy Hook
   const triggerRebuild = async () => {
@@ -348,12 +286,6 @@ export default function AdminPage() {
           >
             Boissons
           </button>
-          <button
-            onClick={() => setActiveTab("gallery")}
-            className={`px-4 py-2 ${activeTab === "gallery" ? "border-b-2 border-blue-600 font-semibold" : ""}`}
-          >
-            Galerie
-          </button>
         </div>
 
         {/* Menu Items */}
@@ -446,57 +378,12 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Gallery Images */}
-        {activeTab === "gallery" && (
-          <div>
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Images de la Galerie</h2>
-              <button
-                onClick={() => {
-                  setEditingItem({ id: "", src: "", alt: "" } as GalleryImage);
-                  setIsNew(true);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                + Ajouter
-              </button>
-            </div>
-            <div className="grid gap-4">
-              {galleryImages.map((item) => (
-                <div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">{item.alt}</h3>
-                    <p className="text-sm text-gray-600 truncate max-w-md">{item.src}</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingItem(item);
-                        setIsNew(false);
-                      }}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleDeleteGalleryImage(item.id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                      Supprimer
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
         {/* Edit Modal */}
         {editingItem && (
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
               <h2 className="text-xl font-bold mb-4">
-                {isNew ? "Ajouter" : "Modifier"} {activeTab === "menu" ? "un élément du menu" : activeTab === "drinks" ? "une boisson" : "une image"}
+                {isNew ? "Ajouter" : "Modifier"} {activeTab === "menu" ? "un élément du menu" : "une boisson"}
               </h2>
               
               {activeTab === "menu" && "name" in editingItem && (
@@ -658,67 +545,6 @@ export default function AdminPage() {
                 </form>
               )}
 
-              {activeTab === "gallery" && "src" in editingItem && (
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    const formData = new FormData(e.currentTarget);
-                    handleSaveGalleryImage({
-                      src: formData.get("src") as string,
-                      alt: formData.get("alt") as string
-                    });
-                  }}
-                  className="space-y-4"
-                >
-                  <div>
-                    <label className="block text-sm font-medium mb-1">URL de l'image</label>
-                    <input
-                      type="text"
-                      name="src"
-                      defaultValue={editingItem.src}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Ou uploader une image</label>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      className="w-full px-4 py-2 border rounded-lg"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description (alt)</label>
-                    <input
-                      type="text"
-                      name="alt"
-                      defaultValue={editingItem.alt}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      required
-                    />
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-                    >
-                      Sauvegarder
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEditingItem(null);
-                        setIsNew(false);
-                      }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
-                    >
-                      Annuler
-                    </button>
-                  </div>
-                </form>
-              )}
             </div>
           </div>
         )}

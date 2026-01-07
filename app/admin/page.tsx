@@ -15,6 +15,12 @@ import {
 } from "@/lib/supabase-admin";
 import { SimpleRichTextEditor } from "@/components/SimpleRichTextEditor";
 import { AdminLayout } from "@/components/admin/AdminLayout";
+import {
+  upsertPageContent,
+  getRestaurantInfo,
+  updateRestaurantInfo,
+  getAllGalleryImages
+} from "@/lib/cms-admin";
 
 // Catégories de menu
 const MENU_CATEGORIES = [
@@ -57,6 +63,70 @@ export default function AdminPage() {
   const [restaurantInfo, setRestaurantInfo] = useState<any>(null);
   const [galleryImages, setGalleryImages] = useState<any[]>([]);
   const [editingBlock, setEditingBlock] = useState<any>(null);
+  
+  // États pour les formulaires de chaque page
+  const [homeData, setHomeData] = useState({
+    heroTitle: "Le Savoré",
+    tagline: "Fine Dining en Suisse",
+    description: "Découvrez une cuisine méditerranéenne de saison, élaborée avec la qualité suisse et le souci du détail dans une atmosphère élégante et accueillante.",
+    seasonalTitle: "Excellence de Saison",
+    seasonalDescription: "Chez Le Savoré, nous célébrons une cuisine méditerranéenne de saison avec la précision et la qualité suisses. Chaque plat reflète notre engagement envers l'approvisionnement local, l'artisanat culinaire et une expérience de restauration élégante et accessible."
+  });
+  
+  const [aboutData, setAboutData] = useState({
+    pageTitle: "Notre Histoire",
+    legacyTitle: "Notre Héritage",
+    legacyText1: "",
+    legacyText2: "",
+    legacyText3: "",
+    philosophyTitle: "Notre Philosophie",
+    swissQuality: "",
+    seasonalCuisine: "",
+    culinaryCraftsmanship: "",
+    warmHospitality: ""
+  });
+  
+  const [contactData, setContactData] = useState({
+    pageTitle: "Contact",
+    getInTouchTitle: "Prendre Contact",
+    getInTouchDescription: "",
+    address: "",
+    phone: "",
+    email: "",
+    sendMessageTitle: "Envoyer un Message",
+    hours_monday: "",
+    hours_tuesday: "",
+    hours_wednesday: "",
+    hours_thursday: "",
+    hours_friday: "",
+    hours_saturday: "",
+    hours_sunday: ""
+  });
+  
+  const [eventsData, setEventsData] = useState({
+    pageTitle: "Événements Privés & Célébrations",
+    subtitle: "Créez des moments inoubliables",
+    eventTypesTitle: "Types d'Événements",
+    eventTypesDescription: "",
+    smallWeddingTitle: "Petit Mariage",
+    smallWeddingDescription: "",
+    baptismBirthdayTitle: "Baptême / Anniversaire",
+    baptismBirthdayDescription: "",
+    corporateMealTitle: "Repas d'Entreprise",
+    corporateMealDescription: "",
+    afterCeremonyMealTitle: "Repas après Cérémonie",
+    afterCeremonyMealDescription: "",
+    customMenusTitle: "Menus Personnalisés",
+    customMenusDescription: "",
+    dedicatedServiceTitle: "Service Dédié",
+    dedicatedServiceDescription: "",
+    elegantAtmosphereTitle: "Atmosphère Élégante",
+    elegantAtmosphereDescription: "",
+    swissQualityTitle: "Qualité Suisse",
+    swissQualityDescription: ""
+  });
+  
+  const [saving, setSaving] = useState<Record<string, boolean>>({});
 
   // Grouper les éléments par catégorie
   const menuItemsByCategory = menuItems.reduce((acc, item) => {
@@ -94,8 +164,8 @@ export default function AdminPage() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setIsAuthenticated(!!session);
       if (session) {
-        loadData();
-      }
+      loadData();
+    }
     });
 
     return () => {
@@ -107,8 +177,8 @@ export default function AdminPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (session) {
-        setIsAuthenticated(true);
-        loadData();
+      setIsAuthenticated(true);
+      loadData();
       }
     } catch (error) {
       console.error("Erreur lors de la vérification de la session:", error);
@@ -194,7 +264,7 @@ export default function AdminPage() {
   const handleLogout = async () => {
     try {
       await supabase.auth.signOut();
-      setIsAuthenticated(false);
+    setIsAuthenticated(false);
       setMenuItems([]);
       setDrinkItems([]);
       showNotification("Déconnexion réussie", "success");
@@ -348,6 +418,150 @@ export default function AdminPage() {
     }
   };
 
+  // Fonction de sauvegarde générique pour les pages
+  const handleSavePageContent = async (pageSlug: string, sections: Record<string, string>) => {
+    setSaving(prev => ({ ...prev, [pageSlug]: true }));
+    try {
+      const promises = Object.entries(sections).map(([key, value]) =>
+        upsertPageContent({
+          page_slug: pageSlug,
+          section_key: key,
+          content_type: key.includes('Description') || key.includes('Text') ? 'html' : 'text',
+          content_value: value
+        })
+      );
+      await Promise.all(promises);
+      showNotification(`Modifications de la page "${pageSlug}" sauvegardées avec succès !`, "success");
+      await triggerRebuild();
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
+    } finally {
+      setSaving(prev => ({ ...prev, [pageSlug]: false }));
+    }
+  };
+  
+  // Sauvegarder la page d'accueil
+  const handleSaveHome = async () => {
+    await handleSavePageContent("home", {
+      "hero-title": homeData.heroTitle,
+      "tagline": homeData.tagline,
+      "description": homeData.description,
+      "seasonal-title": homeData.seasonalTitle,
+      "seasonal-description": homeData.seasonalDescription
+    });
+  };
+  
+  // Sauvegarder la page About
+  const handleSaveAbout = async () => {
+    await handleSavePageContent("about", {
+      "page-title": aboutData.pageTitle,
+      "legacy-title": aboutData.legacyTitle,
+      "legacy-text-1": aboutData.legacyText1,
+      "legacy-text-2": aboutData.legacyText2,
+      "legacy-text-3": aboutData.legacyText3,
+      "philosophy-title": aboutData.philosophyTitle,
+      "swiss-quality": aboutData.swissQuality,
+      "seasonal-cuisine": aboutData.seasonalCuisine,
+      "culinary-craftsmanship": aboutData.culinaryCraftsmanship,
+      "warm-hospitality": aboutData.warmHospitality
+    });
+  };
+  
+  // Sauvegarder la page Contact
+  const handleSaveContact = async () => {
+    try {
+      setSaving(prev => ({ ...prev, contact: true }));
+      
+      // Sauvegarder le contenu de la page
+      await handleSavePageContent("contact", {
+        "page-title": contactData.pageTitle,
+        "get-in-touch-title": contactData.getInTouchTitle,
+        "get-in-touch-description": contactData.getInTouchDescription,
+        "send-message-title": contactData.sendMessageTitle
+      });
+      
+      // Sauvegarder les informations du restaurant
+      await updateRestaurantInfo({
+        address: contactData.address,
+        phone: contactData.phone,
+        email: contactData.email,
+        hours_monday: contactData.hours_monday,
+        hours_tuesday: contactData.hours_tuesday,
+        hours_wednesday: contactData.hours_wednesday,
+        hours_thursday: contactData.hours_thursday,
+        hours_friday: contactData.hours_friday,
+        hours_saturday: contactData.hours_saturday,
+        hours_sunday: contactData.hours_sunday
+      });
+      
+      showNotification("Modifications de la page Contact sauvegardées avec succès !", "success");
+      await triggerRebuild();
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
+    } finally {
+      setSaving(prev => ({ ...prev, contact: false }));
+    }
+  };
+  
+  // Sauvegarder la page Events
+  const handleSaveEvents = async () => {
+    await handleSavePageContent("events", {
+      "page-title": eventsData.pageTitle,
+      "subtitle": eventsData.subtitle,
+      "event-types-title": eventsData.eventTypesTitle,
+      "event-types-description": eventsData.eventTypesDescription,
+      "small-wedding-title": eventsData.smallWeddingTitle,
+      "small-wedding-description": eventsData.smallWeddingDescription,
+      "baptism-birthday-title": eventsData.baptismBirthdayTitle,
+      "baptism-birthday-description": eventsData.baptismBirthdayDescription,
+      "corporate-meal-title": eventsData.corporateMealTitle,
+      "corporate-meal-description": eventsData.corporateMealDescription,
+      "after-ceremony-meal-title": eventsData.afterCeremonyMealTitle,
+      "after-ceremony-meal-description": eventsData.afterCeremonyMealDescription,
+      "custom-menus-title": eventsData.customMenusTitle,
+      "custom-menus-description": eventsData.customMenusDescription,
+      "dedicated-service-title": eventsData.dedicatedServiceTitle,
+      "dedicated-service-description": eventsData.dedicatedServiceDescription,
+      "elegant-atmosphere-title": eventsData.elegantAtmosphereTitle,
+      "elegant-atmosphere-description": eventsData.elegantAtmosphereDescription,
+      "swiss-quality-title": eventsData.swissQualityTitle,
+      "swiss-quality-description": eventsData.swissQualityDescription
+    });
+  };
+  
+  // Sauvegarder les informations du restaurant
+  const handleSaveRestaurant = async () => {
+    try {
+      setSaving(prev => ({ ...prev, restaurant: true }));
+      
+      await updateRestaurantInfo({
+        name: restaurantInfo?.name || "Le Savoré",
+        tagline: restaurantInfo?.tagline || "Fine Dining en Suisse",
+        description: restaurantInfo?.description || "",
+        address: restaurantInfo?.address || "",
+        phone: restaurantInfo?.phone || "",
+        email: restaurantInfo?.email || "",
+        hours_monday: restaurantInfo?.hours_monday || "",
+        hours_tuesday: restaurantInfo?.hours_tuesday || "",
+        hours_wednesday: restaurantInfo?.hours_wednesday || "",
+        hours_thursday: restaurantInfo?.hours_thursday || "",
+        hours_friday: restaurantInfo?.hours_friday || "",
+        hours_saturday: restaurantInfo?.hours_saturday || "",
+        hours_sunday: restaurantInfo?.hours_sunday || ""
+      });
+      
+      showNotification("Informations du restaurant sauvegardées avec succès !", "success");
+      await triggerRebuild();
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
+    } finally {
+      setSaving(prev => ({ ...prev, restaurant: false }));
+    }
+  };
+
 
   // Fonction pour déclencher le rebuild Vercel via Deploy Hook
   const triggerRebuild = async () => {
@@ -414,21 +628,21 @@ export default function AdminPage() {
             <form onSubmit={handleSendOTP} className="space-y-4">
               <div>
                 <label className="block text-sm font-medium mb-2">Email</label>
-                <input
+              <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full px-4 py-2 border rounded-lg"
+                className="w-full px-4 py-2 border rounded-lg"
                   placeholder="votre-email@exemple.com"
-                  required
+                required
                   disabled={loginLoading}
-                />
+              />
                 <p className="text-xs text-gray-500 mt-1">
                   Un code de vérification sera envoyé à cet email
                 </p>
-              </div>
-              <button
-                type="submit"
+            </div>
+            <button
+              type="submit"
                 disabled={loginLoading}
                 className={`w-full py-2 rounded-lg text-white ${
                   loginLoading 
@@ -447,8 +661,8 @@ export default function AdminPage() {
                 className="w-full py-2 text-sm text-gray-600 hover:text-gray-800"
               >
                 Réinitialiser
-              </button>
-            </form>
+            </button>
+          </form>
           ) : (
             <form onSubmit={handleVerifyOTP} className="space-y-4">
               <div>
@@ -540,14 +754,14 @@ export default function AdminPage() {
                 <p className="text-sm text-gray-600 mt-1">Le Savoré - Gestion du contenu</p>
               </div>
             </div>
-            <div className="flex gap-3 items-center">
-              <button
-                onClick={triggerRebuild}
-                disabled={rebuildStatus === "rebuilding"}
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={triggerRebuild}
+              disabled={rebuildStatus === "rebuilding"}
                 className={`px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg ${
-                  rebuildStatus === "rebuilding"
+                rebuildStatus === "rebuilding"
                     ? "bg-gray-400 text-white cursor-not-allowed"
-                    : rebuildStatus === "success"
+                  : rebuildStatus === "success"
                     ? "bg-green-600 hover:bg-green-700 text-white"
                     : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
                 }`}
@@ -575,19 +789,19 @@ export default function AdminPage() {
                     Mettre à jour le site
                   </span>
                 )}
-              </button>
-              <button
-                onClick={handleLogout}
+            </button>
+            <button
+              onClick={handleLogout}
                 className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
-              >
+            >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                Déconnexion
-              </button>
-            </div>
+              Déconnexion
+            </button>
           </div>
         </div>
+      </div>
       </header>
 
       {/* Notification Toast */}
@@ -671,8 +885,8 @@ export default function AdminPage() {
                 Événements
               </span>
             </button>
-            <button
-              onClick={() => setActiveTab("menu")}
+          <button
+            onClick={() => setActiveTab("menu")}
               className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
                 activeTab === "menu"
                   ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
@@ -685,9 +899,9 @@ export default function AdminPage() {
                 </svg>
                 Menu
               </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("drinks")}
+          </button>
+          <button
+            onClick={() => setActiveTab("drinks")}
               className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
                 activeTab === "drinks"
                   ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
@@ -698,11 +912,11 @@ export default function AdminPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                 </svg>
-                Boissons
+            Boissons
               </span>
-            </button>
-            <button
-              onClick={() => setActiveTab("gallery")}
+          </button>
+          <button
+            onClick={() => setActiveTab("gallery")}
               className={`px-4 py-3 rounded-lg font-semibold transition-all text-sm ${
                 activeTab === "gallery"
                   ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
@@ -713,7 +927,7 @@ export default function AdminPage() {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Galerie
+            Galerie
               </span>
             </button>
             <button
@@ -730,7 +944,7 @@ export default function AdminPage() {
                 </svg>
                 Restaurant
               </span>
-            </button>
+          </button>
           </div>
         </div>
 
@@ -780,17 +994,17 @@ export default function AdminPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             <p className="text-sm">Aucun élément dans cette catégorie</p>
-                            <button
-                              onClick={() => {
+              <button
+                onClick={() => {
                                 setSelectedCategory(category);
                                 setEditingItem({ id: "", name: "", description: "", price: 0, category: category, tags: [] } as MenuItem);
-                                setIsNew(true);
-                              }}
+                  setIsNew(true);
+                }}
                               className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold"
-                            >
+              >
                               Ajouter le premier élément
-                            </button>
-                          </div>
+              </button>
+            </div>
                         ) : (
                           items.map((item) => (
                             <div key={item.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
@@ -804,31 +1018,31 @@ export default function AdminPage() {
                                     />
                                   )}
                                   <p className="text-lg font-bold text-blue-600 mt-2">{item.price.toFixed(2)} CHF</p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingItem(item);
-                                      setIsNew(false);
-                                    }}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(item);
+                        setIsNew(false);
+                      }}
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                                  >
+                    >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Modifier
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteMenuItem(item.id)}
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => handleDeleteMenuItem(item.id)}
                                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                                  >
+                    >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    Supprimer
-                                  </button>
-                                </div>
-                              </div>
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
                             </div>
                           ))
                         )}
@@ -888,17 +1102,17 @@ export default function AdminPage() {
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
                             </svg>
                             <p className="text-sm">Aucun élément dans cette catégorie</p>
-                            <button
-                              onClick={() => {
+              <button
+                onClick={() => {
                                 setSelectedCategory(categoryInfo.value);
                                 setEditingItem({ id: "", name: "", description: "", price: 0, category: categoryInfo.value } as DrinkItem);
-                                setIsNew(true);
-                              }}
+                  setIsNew(true);
+                }}
                               className="mt-3 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-semibold"
-                            >
+              >
                               Ajouter la première boisson
-                            </button>
-                          </div>
+              </button>
+            </div>
                         ) : (
                           items.map((item) => (
                             <div key={item.id} className="bg-white p-4 rounded-lg border border-gray-200 hover:border-blue-300 hover:shadow-md transition-all">
@@ -912,31 +1126,31 @@ export default function AdminPage() {
                                     />
                                   )}
                                   <p className="text-lg font-bold text-blue-600 mt-2">{item.price.toFixed(2)} CHF</p>
-                                </div>
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() => {
-                                      setEditingItem(item);
-                                      setIsNew(false);
-                                    }}
+                  </div>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => {
+                        setEditingItem(item);
+                        setIsNew(false);
+                      }}
                                     className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                                  >
+                    >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                                     </svg>
-                                    Modifier
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteDrinkItem(item.id)}
+                      Modifier
+                    </button>
+                    <button
+                      onClick={() => handleDeleteDrinkItem(item.id)}
                                     className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 font-semibold shadow-md hover:shadow-lg transition-all flex items-center gap-2"
-                                  >
+                    >
                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
                                     </svg>
-                                    Supprimer
-                                  </button>
-                                </div>
-                              </div>
+                      Supprimer
+                    </button>
+                  </div>
+                </div>
                             </div>
                           ))
                         )}
@@ -957,13 +1171,14 @@ export default function AdminPage() {
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page d'accueil</p>
               
               <div className="space-y-6">
-                <div>
+          <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
                     Titre Principal (Hero)
                   </label>
                   <input
                     type="text"
-                    defaultValue="Le Savoré"
+                    value={homeData.heroTitle}
+                    onChange={(e) => setHomeData({ ...homeData, heroTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     placeholder="Titre principal"
                   />
@@ -975,7 +1190,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Fine Dining en Suisse"
+                    value={homeData.tagline}
+                    onChange={(e) => setHomeData({ ...homeData, tagline: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     placeholder="Slogan"
                   />
@@ -986,8 +1202,8 @@ export default function AdminPage() {
                     Description Principale
                   </label>
                   <SimpleRichTextEditor
-                    value="Découvrez une cuisine méditerranéenne de saison, élaborée avec la qualité suisse et le souci du détail dans une atmosphère élégante et accueillante."
-                    onChange={() => {}}
+                    value={homeData.description}
+                    onChange={(value) => setHomeData({ ...homeData, description: value })}
                     placeholder="Description de votre restaurant..."
                   />
                 </div>
@@ -998,7 +1214,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Excellence de Saison"
+                    value={homeData.seasonalTitle}
+                    onChange={(e) => setHomeData({ ...homeData, seasonalTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1008,16 +1225,35 @@ export default function AdminPage() {
                     Section "Excellence de Saison" - Description
                   </label>
                   <SimpleRichTextEditor
-                    value="Chez Le Savoré, nous célébrons une cuisine méditerranéenne de saison avec la précision et la qualité suisses. Chaque plat reflète notre engagement envers l'approvisionnement local, l'artisanat culinaire et une expérience de restauration élégante et accessible."
-                    onChange={() => {}}
+                    value={homeData.seasonalDescription}
+                    onChange={(value) => setHomeData({ ...homeData, seasonalDescription: value })}
                     placeholder="Description..."
                   />
                 </div>
                 
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
-                  Sauvegarder les modifications
-                </button>
-              </div>
+              <button
+                  onClick={handleSaveAbout}
+                  disabled={saving.about}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving.about ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sauvegarde en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sauvegarder les modifications
+                    </>
+                  )}
+              </button>
+            </div>
             </div>
           </div>
         )}
@@ -1030,16 +1266,17 @@ export default function AdminPage() {
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Notre Histoire</p>
               
               <div className="space-y-6">
-                <div>
+                  <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
                     Titre de la Page
                   </label>
                   <input
                     type="text"
-                    defaultValue="Notre Histoire"
+                    value={aboutData.pageTitle}
+                    onChange={(e) => setAboutData({ ...aboutData, pageTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
-                </div>
+                  </div>
                 
                 <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -1047,7 +1284,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Notre Héritage"
+                    value={aboutData.legacyTitle}
+                    onChange={(e) => setAboutData({ ...aboutData, legacyTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1057,8 +1295,8 @@ export default function AdminPage() {
                     Section "Héritage" - Paragraphe 1
                   </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.legacyText1}
+                    onChange={(value) => setAboutData({ ...aboutData, legacyText1: value })}
                     placeholder="Premier paragraphe de l'histoire..."
                   />
                 </div>
@@ -1068,8 +1306,8 @@ export default function AdminPage() {
                     Section "Héritage" - Paragraphe 2
                   </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.legacyText2}
+                    onChange={(value) => setAboutData({ ...aboutData, legacyText2: value })}
                     placeholder="Deuxième paragraphe..."
                   />
                 </div>
@@ -1079,8 +1317,8 @@ export default function AdminPage() {
                     Section "Héritage" - Paragraphe 3
                   </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.legacyText3}
+                    onChange={(value) => setAboutData({ ...aboutData, legacyText3: value })}
                     placeholder="Troisième paragraphe..."
                   />
                 </div>
@@ -1091,7 +1329,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Notre Philosophie"
+                    value={aboutData.philosophyTitle}
+                    onChange={(e) => setAboutData({ ...aboutData, philosophyTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1102,8 +1341,8 @@ export default function AdminPage() {
                       Qualité Suisse - Description
                     </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.swissQuality}
+                    onChange={(value) => setAboutData({ ...aboutData, swissQuality: value })}
                     placeholder="Description de la qualité suisse..."
                   />
                   </div>
@@ -1113,8 +1352,8 @@ export default function AdminPage() {
                       Cuisine de Saison - Description
                     </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.seasonalCuisine}
+                    onChange={(value) => setAboutData({ ...aboutData, seasonalCuisine: value })}
                     placeholder="Description de la cuisine de saison..."
                   />
                   </div>
@@ -1124,8 +1363,8 @@ export default function AdminPage() {
                       Artisanat Culinaire - Description
                     </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.culinaryCraftsmanship}
+                    onChange={(value) => setAboutData({ ...aboutData, culinaryCraftsmanship: value })}
                     placeholder="Description de l'artisanat culinaire..."
                   />
                   </div>
@@ -1135,16 +1374,35 @@ export default function AdminPage() {
                       Hospitalité - Description
                     </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={aboutData.warmHospitality}
+                    onChange={(value) => setAboutData({ ...aboutData, warmHospitality: value })}
                     placeholder="Description de l'hospitalité..."
                   />
                   </div>
                 </div>
                 
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
-                  Sauvegarder les modifications
-                </button>
+                    <button
+                  onClick={handleSaveContact}
+                  disabled={saving.contact}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving.contact ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sauvegarde en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sauvegarder les modifications
+                    </>
+                  )}
+                    </button>
               </div>
             </div>
           </div>
@@ -1164,7 +1422,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Contact"
+                    value={contactData.pageTitle}
+                    onChange={(e) => setContactData({ ...contactData, pageTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1175,7 +1434,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Prendre Contact"
+                    value={contactData.getInTouchTitle}
+                    onChange={(e) => setContactData({ ...contactData, getInTouchTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1185,8 +1445,8 @@ export default function AdminPage() {
                     Section "Prendre Contact" - Description
                   </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={contactData.getInTouchDescription}
+                    onChange={(value) => setContactData({ ...contactData, getInTouchDescription: value })}
                     placeholder="Description de la section contact..."
                   />
                 </div>
@@ -1231,7 +1491,8 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Envoyer un Message"
+                      value={contactData.sendMessageTitle}
+                      onChange={(e) => setContactData({ ...contactData, sendMessageTitle: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     />
                   </div>
@@ -1242,7 +1503,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Lundi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_monday || "Fermé"}
+                      value={contactData.hours_monday}
+                      onChange={(e) => setContactData({ ...contactData, hours_monday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1250,7 +1512,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Mardi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_tuesday || "10h00–14h00, 18h00–22h00"}
+                      value={contactData.hours_tuesday}
+                      onChange={(e) => setContactData({ ...contactData, hours_tuesday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1258,7 +1521,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Mercredi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_wednesday || "10h00–14h00, 18h00–22h00"}
+                      value={contactData.hours_wednesday}
+                      onChange={(e) => setContactData({ ...contactData, hours_wednesday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1266,7 +1530,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Jeudi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_thursday || "10h00–14h00, 18h00–22h00"}
+                      value={contactData.hours_thursday}
+                      onChange={(e) => setContactData({ ...contactData, hours_thursday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1274,7 +1539,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Vendredi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_friday || "11h30–13h30, 18h00–21h30"}
+                      value={contactData.hours_friday}
+                      onChange={(e) => setContactData({ ...contactData, hours_friday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1282,7 +1548,8 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Samedi</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_saturday || "18h00–23h00"}
+                      value={contactData.hours_saturday}
+                      onChange={(e) => setContactData({ ...contactData, hours_saturday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
@@ -1290,16 +1557,36 @@ export default function AdminPage() {
                     <label className="block text-sm font-semibold mb-2 text-gray-700">Dimanche</label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.hours_sunday || "Fermé"}
+                      value={contactData.hours_sunday}
+                      onChange={(e) => setContactData({ ...contactData, hours_sunday: e.target.value })}
                       className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                     />
                   </div>
                 </div>
                 
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
-                  Sauvegarder les modifications
-                </button>
-              </div>
+                    <button
+                  onClick={handleSaveContact}
+                  disabled={saving.contact}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving.contact ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sauvegarde en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sauvegarder les modifications
+                    </>
+                  )}
+                    </button>
+                  </div>
             </div>
           </div>
         )}
@@ -1312,24 +1599,26 @@ export default function AdminPage() {
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Événements</p>
               
               <div className="space-y-6">
-                <div>
+                  <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
                     Titre de la Page
                   </label>
-                  <input
-                    type="text"
-                    defaultValue="Événements Privés & Célébrations"
+                    <input
+                      type="text"
+                    value={eventsData.pageTitle}
+                    onChange={(e) => setEventsData({ ...eventsData, pageTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                  />
-                </div>
+                    />
+                  </div>
                 
-                <div>
+                  <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
                     Sous-titre
                   </label>
                   <input
                     type="text"
-                    defaultValue="Créez des moments inoubliables"
+                    value={eventsData.subtitle}
+                    onChange={(e) => setEventsData({ ...eventsData, subtitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1340,7 +1629,8 @@ export default function AdminPage() {
                   </label>
                   <input
                     type="text"
-                    defaultValue="Types d'Événements"
+                    value={eventsData.eventTypesTitle}
+                    onChange={(e) => setEventsData({ ...eventsData, eventTypesTitle: e.target.value })}
                     className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                   />
                 </div>
@@ -1350,8 +1640,8 @@ export default function AdminPage() {
                     Section "Types d'Événements" - Description
                   </label>
                   <SimpleRichTextEditor
-                    value=""
-                    onChange={() => {}}
+                    value={eventsData.eventTypesDescription}
+                    onChange={(value) => setEventsData({ ...eventsData, eventTypesDescription: value })}
                     placeholder="Description des types d'événements..."
                   />
                 </div>
@@ -1365,15 +1655,16 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Petit Mariage"
+                      value={eventsData.smallWeddingTitle}
+                      onChange={(e) => setEventsData({ ...eventsData, smallWeddingTitle: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
                     />
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Petit Mariage - Description
                     </label>
                     <SimpleRichTextEditor
-                      value=""
-                      onChange={() => {}}
+                      value={eventsData.smallWeddingDescription}
+                      onChange={(value) => setEventsData({ ...eventsData, smallWeddingDescription: value })}
                       placeholder="Description du petit mariage..."
                     />
                   </div>
@@ -1384,15 +1675,16 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Baptême / Anniversaire"
+                      value={eventsData.baptismBirthdayTitle}
+                      onChange={(e) => setEventsData({ ...eventsData, baptismBirthdayTitle: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
                     />
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Baptême / Anniversaire - Description
                     </label>
                     <SimpleRichTextEditor
-                      value=""
-                      onChange={() => {}}
+                      value={eventsData.baptismBirthdayDescription}
+                      onChange={(value) => setEventsData({ ...eventsData, baptismBirthdayDescription: value })}
                       placeholder="Description..."
                     />
                   </div>
@@ -1403,15 +1695,16 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Repas d'Entreprise"
+                      value={eventsData.corporateMealTitle}
+                      onChange={(e) => setEventsData({ ...eventsData, corporateMealTitle: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
                     />
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Repas d'Entreprise - Description
                     </label>
                     <SimpleRichTextEditor
-                      value=""
-                      onChange={() => {}}
+                      value={eventsData.corporateMealDescription}
+                      onChange={(value) => setEventsData({ ...eventsData, corporateMealDescription: value })}
                       placeholder="Description..."
                     />
                   </div>
@@ -1422,15 +1715,16 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue="Repas après Cérémonie"
+                      value={eventsData.afterCeremonyMealTitle}
+                      onChange={(e) => setEventsData({ ...eventsData, afterCeremonyMealTitle: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all mb-3"
                     />
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Repas après Cérémonie - Description
                     </label>
                     <SimpleRichTextEditor
-                      value=""
-                      onChange={() => {}}
+                      value={eventsData.afterCeremonyMealDescription}
+                      onChange={(value) => setEventsData({ ...eventsData, afterCeremonyMealDescription: value })}
                       placeholder="Description..."
                     />
                   </div>
@@ -1453,18 +1747,37 @@ export default function AdminPage() {
                         <label className="block text-sm font-semibold mb-2 text-gray-700">
                           {service} - Description
                         </label>
-                        <textarea
-                          rows={3}
+                    <textarea
+                      rows={3}
                           className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                           placeholder="Description..."
-                        />
-                      </div>
+                    />
+                  </div>
                     ))}
                   </div>
                 </div>
                 
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
-                  Sauvegarder les modifications
+                <button 
+                  onClick={handleSaveEvents}
+                  disabled={saving.events}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving.events ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sauvegarde en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sauvegarder les modifications
+                    </>
+                  )}
                 </button>
               </div>
             </div>
@@ -1533,29 +1846,31 @@ export default function AdminPage() {
               <p className="text-gray-600 mb-6">Modifiez les informations générales du restaurant</p>
               
               <div className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Nom du Restaurant <span className="text-red-500">*</span>
                     </label>
-                    <input
+                      <input
                       type="text"
-                      defaultValue={restaurantInfo?.name || "Le Savoré"}
+                      value={restaurantInfo?.name || "Le Savoré"}
+                      onChange={(e) => setRestaurantInfo({ ...restaurantInfo, name: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                    />
-                  </div>
+                      />
+                    </div>
                   
-                  <div>
+                    <div>
                     <label className="block text-sm font-semibold mb-2 text-gray-700">
                       Slogan <span className="text-red-500">*</span>
                     </label>
-                    <input
-                      type="text"
-                      defaultValue={restaurantInfo?.tagline || "Fine Dining en Suisse"}
+                      <input
+                        type="text"
+                      value={restaurantInfo?.tagline || "Fine Dining en Suisse"}
+                      onChange={(e) => setRestaurantInfo({ ...restaurantInfo, tagline: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
-                    />
+                      />
+                    </div>
                   </div>
-                </div>
                 
                 <div>
                   <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -1563,7 +1878,7 @@ export default function AdminPage() {
                   </label>
                   <SimpleRichTextEditor
                     value={restaurantInfo?.description || ""}
-                    onChange={() => {}}
+                    onChange={(value) => setRestaurantInfo({ ...restaurantInfo, description: value })}
                     placeholder="Description du restaurant..."
                   />
                 </div>
@@ -1575,7 +1890,8 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.address || "Rue Sous-le-Pré 19A, 2014 Bôle"}
+                      value={restaurantInfo?.address || "Rue Sous-le-Pré 19A, 2014 Bôle"}
+                      onChange={(e) => setRestaurantInfo({ ...restaurantInfo, address: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     />
                   </div>
@@ -1586,7 +1902,8 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="text"
-                      defaultValue={restaurantInfo?.phone || "+41 76 630 73 10"}
+                      value={restaurantInfo?.phone || "+41 76 630 73 10"}
+                      onChange={(e) => setRestaurantInfo({ ...restaurantInfo, phone: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     />
                   </div>
@@ -1597,7 +1914,8 @@ export default function AdminPage() {
                     </label>
                     <input
                       type="email"
-                      defaultValue={restaurantInfo?.email || "info@lesavore.ch"}
+                      value={restaurantInfo?.email || "info@lesavore.ch"}
+                      onChange={(e) => setRestaurantInfo({ ...restaurantInfo, email: e.target.value })}
                       className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                     />
                   </div>
@@ -1621,7 +1939,8 @@ export default function AdminPage() {
                         <label className="block text-xs font-semibold mb-1 text-gray-600">{day}</label>
                         <input
                           type="text"
-                          defaultValue={restaurantInfo?.[key] || ""}
+                          value={restaurantInfo?.[key] || ""}
+                          onChange={(e) => setRestaurantInfo({ ...restaurantInfo, [key]: e.target.value })}
                           className="w-full px-3 py-2 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all text-sm"
                           placeholder="Ex: 10h-22h"
                         />
@@ -1630,9 +1949,28 @@ export default function AdminPage() {
                   </div>
                 </div>
                 
-                <button className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all">
-                  Sauvegarder les modifications
-                </button>
+                    <button
+                  onClick={handleSaveRestaurant}
+                  disabled={saving.restaurant}
+                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                >
+                  {saving.restaurant ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                      </svg>
+                      Sauvegarde en cours...
+                    </>
+                  ) : (
+                    <>
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                      Sauvegarder les modifications
+                    </>
+                  )}
+                    </button>
               </div>
             </div>
           </div>
@@ -1661,21 +1999,21 @@ export default function AdminPage() {
                       </span>
                     )}
                   </h2>
-                  <button
-                    onClick={() => {
-                      setEditingItem(null);
-                      setIsNew(false);
-                    }}
+                    <button
+                      onClick={() => {
+                        setEditingItem(null);
+                        setIsNew(false);
+                      }}
                     className="text-white hover:text-gray-200 transition-colors"
-                  >
+                    >
                     <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                  </button>
-                </div>
+                    </button>
+                  </div>
               </div>
               <div className="p-6">
-              
+
               {activeTab === "menu" && "name" in editingItem && (
                 <form
                   onSubmit={(e) => {
@@ -1717,16 +2055,16 @@ export default function AdminPage() {
                       </label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">CHF</span>
-                        <input
-                          type="number"
-                          name="price"
-                          step="0.01"
+                      <input
+                        type="number"
+                        name="price"
+                        step="0.01"
                           min="0"
-                          defaultValue={editingItem.price}
+                        defaultValue={editingItem.price}
                           className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                           placeholder="0.00"
-                          required
-                        />
+                        required
+                      />
                       </div>
                     </div>
                     <div>
@@ -1812,13 +2150,13 @@ export default function AdminPage() {
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
+                  <div>
                       <label className="block text-sm font-semibold mb-2 text-gray-700">
                         Prix (CHF) <span className="text-red-500">*</span>
                       </label>
                       <div className="relative">
                         <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">CHF</span>
-                        <input
+                    <input
                           type="number"
                           name="price"
                           step="0.01"
@@ -1826,9 +2164,9 @@ export default function AdminPage() {
                           defaultValue={editingItem.price}
                           className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
                           placeholder="0.00"
-                          required
-                        />
-                      </div>
+                      required
+                    />
+                  </div>
                     </div>
                     <div>
                       <label className="block text-sm font-semibold mb-2 text-gray-700">

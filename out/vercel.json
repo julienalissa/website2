@@ -1,4 +1,22 @@
 {
   "version": 2,
-  "public": true
+  "builds": [
+    {
+      "src": "package.json",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/admin",
+      "dest": "/admin/index.html"
+    },
+    {
+      "src": "/admin/",
+      "dest": "/admin/index.html"
+    }
+  ]
 }

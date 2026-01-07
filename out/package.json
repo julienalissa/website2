@@ -1,8 +1,5 @@
 {
   "name": "le-savore-static",
   "version": "1.0.0",
-  "description": "Site statique Le Savoré - Fichiers statiques uniquement, pas de build nécessaire",
-  "scripts": {
-    "build": "echo 'Static files - no build needed'"
-  }
+  "description": "Site statique Le Savoré"
 }

@@ -36,7 +36,8 @@ const DRINK_CATEGORIES = [
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [otpCode, setOtpCode] = useState("");
+  const [loginStep, setLoginStep] = useState<"email" | "code">("email");
   const [loading, setLoading] = useState(false);
   const [loginLoading, setLoginLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"menu" | "drinks">("menu");
@@ -117,19 +118,50 @@ export default function AdminPage() {
     }
   }, [menuItems.length, drinkItems.length]);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSendOTP = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithOtp({
         email: email.trim(),
-        password: password
+        options: {
+          shouldCreateUser: false, // Ne pas créer d'utilisateur, seulement envoyer le code
+        }
       });
 
       if (error) {
-        console.error("Erreur de connexion:", error);
-        showNotification("Email ou mot de passe incorrect", "error");
+        console.error("Erreur lors de l'envoi du code:", error);
+        showNotification("Erreur : cet email n'est pas autorisé ou n'existe pas", "error");
+        setLoginLoading(false);
+        return;
+      }
+
+      // Code envoyé avec succès
+      setLoginStep("code");
+      showNotification("Code de vérification envoyé par email !", "success");
+    } catch (error) {
+      console.error("Erreur:", error);
+      showNotification("Une erreur est survenue", "error");
+    } finally {
+      setLoginLoading(false);
+    }
+  };
+
+  const handleVerifyOTP = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginLoading(true);
+    
+    try {
+      const { data, error } = await supabase.auth.verifyOtp({
+        email: email.trim(),
+        token: otpCode.trim(),
+        type: 'email'
+      });
+
+      if (error) {
+        console.error("Erreur de vérification:", error);
+        showNotification("Code incorrect ou expiré", "error");
         setLoginLoading(false);
         return;
       }
@@ -137,13 +169,14 @@ export default function AdminPage() {
       if (data.session) {
         setIsAuthenticated(true);
         setEmail("");
-        setPassword("");
+        setOtpCode("");
+        setLoginStep("email");
         showNotification("Connexion réussie !", "success");
         await loadData();
       }
     } catch (error) {
       console.error("Erreur:", error);
-      showNotification("Une erreur est survenue lors de la connexion", "error");
+      showNotification("Une erreur est survenue lors de la vérification", "error");
     } finally {
       setLoginLoading(false);
     }
@@ -339,47 +372,105 @@ export default function AdminPage() {
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
         <div className="bg-white p-8 rounded-lg shadow-md max-w-md w-full">
           <h1 className="text-2xl font-bold mb-6 text-center">Administration - Le Savoré</h1>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium mb-2">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                placeholder="votre-email@exemple.com"
-                required
+          
+          {loginStep === "email" ? (
+            <form onSubmit={handleSendOTP} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Email</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg"
+                  placeholder="votre-email@exemple.com"
+                  required
+                  disabled={loginLoading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Un code de vérification sera envoyé à cet email
+                </p>
+              </div>
+              <button
+                type="submit"
                 disabled={loginLoading}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-2">Mot de passe</label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border rounded-lg"
-                required
-                disabled={loginLoading}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={loginLoading}
-              className={`w-full py-2 rounded-lg text-white ${
-                loginLoading 
-                  ? "bg-gray-400 cursor-not-allowed" 
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {loginLoading ? "Connexion..." : "Se connecter"}
-            </button>
-          </form>
+                className={`w-full py-2 rounded-lg text-white ${
+                  loginLoading 
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-blue-600 hover:bg-blue-700"
+                }`}
+              >
+                {loginLoading ? "Envoi en cours..." : "Envoyer le code"}
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail("");
+                  setOtpCode("");
+                }}
+                className="w-full py-2 text-sm text-gray-600 hover:text-gray-800"
+              >
+                Réinitialiser
+              </button>
+            </form>
+          ) : (
+            <form onSubmit={handleVerifyOTP} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Code de vérification</label>
+                <input
+                  type="text"
+                  value={otpCode}
+                  onChange={(e) => setOtpCode(e.target.value)}
+                  className="w-full px-4 py-2 border rounded-lg text-center text-2xl tracking-widest"
+                  placeholder="000000"
+                  maxLength={6}
+                  required
+                  disabled={loginLoading}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Entrez le code à 6 chiffres reçu par email à <strong>{email}</strong>
+                </p>
+              </div>
+              <button
+                type="submit"
+                disabled={loginLoading || otpCode.length !== 6}
+                className={`w-full py-2 rounded-lg text-white ${
+                  loginLoading || otpCode.length !== 6
+                    ? "bg-gray-400 cursor-not-allowed" 
+                    : "bg-green-600 hover:bg-green-700"
+                }`}
+              >
+                {loginLoading ? "Vérification..." : "Vérifier le code"}
+              </button>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLoginStep("email");
+                    setOtpCode("");
+                  }}
+                  className="flex-1 py-2 text-sm text-gray-600 hover:text-gray-800"
+                >
+                  ← Retour
+                </button>
+                <button
+                  type="button"
+                  onClick={handleSendOTP}
+                  disabled={loginLoading}
+                  className="flex-1 py-2 text-sm text-blue-600 hover:text-blue-800"
+                >
+                  Renvoyer le code
+                </button>
+              </div>
+            </form>
+          )}
+          
           {notification && (
             <div className={`mt-4 p-3 rounded-lg text-sm ${
               notification.type === "error" 
                 ? "bg-red-100 text-red-700" 
-                : "bg-green-100 text-green-700"
+                : notification.type === "success"
+                ? "bg-green-100 text-green-700"
+                : "bg-blue-100 text-blue-700"
             }`}>
               {notification.message}
             </div>

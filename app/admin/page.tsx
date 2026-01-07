@@ -16,6 +16,25 @@ import {
 // Mot de passe admin - Peut être défini via NEXT_PUBLIC_ADMIN_PASSWORD ou utiliser la valeur par défaut
 const ADMIN_PASSWORD = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "Papaz123123";
 
+// Catégories de menu
+const MENU_CATEGORIES = [
+  "Entrées",
+  "Plats",
+  "Suppléments",
+  "Suppléments Sauces",
+  "Fondue",
+  "Menu Enfants",
+  "Desserts"
+];
+
+// Catégories de boissons (mapping vers les valeurs de la base de données)
+const DRINK_CATEGORIES = [
+  { label: "Cocktails", value: "cocktail" },
+  { label: "Boissons Non Alcoolisées", value: "non-alcoholic" },
+  { label: "Sélection de Vins", value: "wine" },
+  { label: "Sélection de Bières", value: "beer" }
+];
+
 export default function AdminPage() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState("");
@@ -25,8 +44,38 @@ export default function AdminPage() {
   const [loading, setLoading] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | DrinkItem | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
   const [rebuildStatus, setRebuildStatus] = useState<"idle" | "rebuilding" | "success" | "error">("idle");
   const [notification, setNotification] = useState<{ message: string; type: "success" | "error" | "info" } | null>(null);
+
+  // Grouper les éléments par catégorie
+  const menuItemsByCategory = menuItems.reduce((acc, item) => {
+    if (!acc[item.category]) {
+      acc[item.category] = [];
+    }
+    acc[item.category].push(item);
+    return acc;
+  }, {} as Record<string, MenuItem[]>);
+
+  const drinkItemsByCategory = drinkItems.reduce((acc, item) => {
+    const categoryLabel = DRINK_CATEGORIES.find(c => c.value === item.category)?.label || item.category;
+    if (!acc[categoryLabel]) {
+      acc[categoryLabel] = [];
+    }
+    acc[categoryLabel].push(item);
+    return acc;
+  }, {} as Record<string, DrinkItem[]>);
+
+  const toggleCategory = (category: string) => {
+    const newExpanded = new Set(expandedCategories);
+    if (newExpanded.has(category)) {
+      newExpanded.delete(category);
+    } else {
+      newExpanded.add(category);
+    }
+    setExpandedCategories(newExpanded);
+  };
 
   useEffect(() => {
     // Vérifier si l'utilisateur est déjà authentifié
@@ -36,6 +85,17 @@ export default function AdminPage() {
       loadData();
     }
   }, []);
+
+  // Ouvrir toutes les catégories par défaut quand les données sont chargées
+  useEffect(() => {
+    if (menuItems.length > 0 || drinkItems.length > 0) {
+      const allCategories = [
+        ...MENU_CATEGORIES,
+        ...DRINK_CATEGORIES.map(c => c.label)
+      ];
+      setExpandedCategories(new Set(allCategories));
+    }
+  }, [menuItems.length, drinkItems.length]);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -291,44 +351,75 @@ export default function AdminPage() {
         {/* Menu Items */}
         {activeTab === "menu" && (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Éléments du Menu</h2>
-              <button
-                onClick={() => {
-                  setEditingItem({ id: "", name: "", description: "", price: 0, category: "", tags: [] } as MenuItem);
-                  setIsNew(true);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                + Ajouter
-              </button>
             </div>
-            <div className="grid gap-4">
-              {menuItems.map((item) => (
-                <div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-gray-600">{item.category} - {item.price} CHF</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingItem(item);
-                        setIsNew(false);
-                      }}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            <div className="space-y-4">
+              {MENU_CATEGORIES.map((category) => {
+                const items = menuItemsByCategory[category] || [];
+                const isExpanded = expandedCategories.has(category);
+                return (
+                  <div key={category} className="bg-white rounded-lg shadow">
+                    <div
+                      className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
+                      onClick={() => toggleCategory(category)}
                     >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleDeleteMenuItem(item.id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                      Supprimer
-                    </button>
+                      <h3 className="text-lg font-semibold">{category}</h3>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-500">{items.length} élément{items.length > 1 ? 's' : ''}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCategory(category);
+                            setEditingItem({ id: "", name: "", description: "", price: 0, category: category, tags: [] } as MenuItem);
+                            setIsNew(true);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                        >
+                          + Ajouter
+                        </button>
+                        <span className="text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="border-t p-4 space-y-2">
+                        {items.length === 0 ? (
+                          <p className="text-gray-500 text-sm">Aucun élément dans cette catégorie</p>
+                        ) : (
+                          items.map((item) => (
+                            <div key={item.id} className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{item.name}</h4>
+                                {item.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                )}
+                                <p className="text-sm font-medium text-blue-600 mt-1">{item.price} CHF</p>
+                              </div>
+                              <div className="flex gap-2 ml-4">
+                                <button
+                                  onClick={() => {
+                                    setEditingItem(item);
+                                    setIsNew(false);
+                                  }}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                >
+                                  Modifier
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteMenuItem(item.id)}
+                                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -336,44 +427,76 @@ export default function AdminPage() {
         {/* Drink Items */}
         {activeTab === "drinks" && (
           <div>
-            <div className="flex justify-between items-center mb-4">
+            <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-semibold">Boissons</h2>
-              <button
-                onClick={() => {
-                  setEditingItem({ id: "", name: "", description: "", price: 0, category: "cocktail" } as DrinkItem);
-                  setIsNew(true);
-                }}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                + Ajouter
-              </button>
             </div>
-            <div className="grid gap-4">
-              {drinkItems.map((item) => (
-                <div key={item.id} className="bg-white p-4 rounded-lg shadow flex justify-between items-center">
-                  <div>
-                    <h3 className="font-semibold">{item.name}</h3>
-                    <p className="text-sm text-gray-600">{item.category} - {item.price} CHF</p>
-                  </div>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => {
-                        setEditingItem(item);
-                        setIsNew(false);
-                      }}
-                      className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
+            <div className="space-y-4">
+              {DRINK_CATEGORIES.map((categoryInfo) => {
+                const categoryLabel = categoryInfo.label;
+                const items = drinkItemsByCategory[categoryLabel] || [];
+                const isExpanded = expandedCategories.has(categoryLabel);
+                return (
+                  <div key={categoryLabel} className="bg-white rounded-lg shadow">
+                    <div
+                      className="flex justify-between items-center p-4 cursor-pointer hover:bg-gray-50"
+                      onClick={() => toggleCategory(categoryLabel)}
                     >
-                      Modifier
-                    </button>
-                    <button
-                      onClick={() => handleDeleteDrinkItem(item.id)}
-                      className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700"
-                    >
-                      Supprimer
-                    </button>
+                      <h3 className="text-lg font-semibold">{categoryLabel}</h3>
+                      <div className="flex items-center gap-3">
+                        <span className="text-sm text-gray-500">{items.length} élément{items.length > 1 ? 's' : ''}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedCategory(categoryInfo.value);
+                            setEditingItem({ id: "", name: "", description: "", price: 0, category: categoryInfo.value } as DrinkItem);
+                            setIsNew(true);
+                          }}
+                          className="px-3 py-1 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
+                        >
+                          + Ajouter
+                        </button>
+                        <span className="text-gray-400">{isExpanded ? '▼' : '▶'}</span>
+                      </div>
+                    </div>
+                    {isExpanded && (
+                      <div className="border-t p-4 space-y-2">
+                        {items.length === 0 ? (
+                          <p className="text-gray-500 text-sm">Aucun élément dans cette catégorie</p>
+                        ) : (
+                          items.map((item) => (
+                            <div key={item.id} className="bg-gray-50 p-3 rounded flex justify-between items-center">
+                              <div className="flex-1">
+                                <h4 className="font-semibold">{item.name}</h4>
+                                {item.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{item.description}</p>
+                                )}
+                                <p className="text-sm font-medium text-blue-600 mt-1">{item.price} CHF</p>
+                              </div>
+                              <div className="flex gap-2 ml-4">
+                                <button
+                                  onClick={() => {
+                                    setEditingItem(item);
+                                    setIsNew(false);
+                                  }}
+                                  className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm"
+                                >
+                                  Modifier
+                                </button>
+                                <button
+                                  onClick={() => handleDeleteDrinkItem(item.id)}
+                                  className="px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700 text-sm"
+                                >
+                                  Supprimer
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         )}
@@ -434,13 +557,16 @@ export default function AdminPage() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Catégorie</label>
-                      <input
-                        type="text"
+                      <select
                         name="category"
-                        defaultValue={editingItem.category}
+                        defaultValue={editingItem.category || selectedCategory}
                         className="w-full px-4 py-2 border rounded-lg"
                         required
-                      />
+                      >
+                        {MENU_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>{cat}</option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -513,14 +639,13 @@ export default function AdminPage() {
                       <label className="block text-sm font-medium mb-1">Catégorie</label>
                       <select
                         name="category"
-                        defaultValue={editingItem.category}
+                        defaultValue={editingItem.category || selectedCategory}
                         className="w-full px-4 py-2 border rounded-lg"
                         required
                       >
-                        <option value="cocktail">Cocktail</option>
-                        <option value="wine">Vin</option>
-                        <option value="beer">Bière</option>
-                        <option value="non-alcoholic">Sans alcool</option>
+                        {DRINK_CATEGORIES.map((cat) => (
+                          <option key={cat.value} value={cat.value}>{cat.label}</option>
+                        ))}
                       </select>
                     </div>
                   </div>

@@ -74,7 +74,7 @@
         },
         {
           "protocol": "https",
-          "hostname": "rdisefatytjkgnqrbsqx.supabase.co"
+          "hostname": "*.supabase.co"
         }
       ],
       "unoptimized": true

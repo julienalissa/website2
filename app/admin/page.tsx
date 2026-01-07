@@ -13,6 +13,8 @@ import {
   updateDrinkItem,
   deleteDrinkItem
 } from "@/lib/supabase-admin";
+import { SimpleRichTextEditor } from "@/components/SimpleRichTextEditor";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 
 // Catégories de menu
 const MENU_CATEGORIES = [
@@ -518,33 +520,69 @@ export default function AdminPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Administration - Le Savoré</h1>
-          <div className="flex gap-3 items-center">
-            <button
-              onClick={triggerRebuild}
-              disabled={rebuildStatus === "rebuilding"}
-              className={`px-4 py-2 rounded-lg text-white ${
-                rebuildStatus === "rebuilding"
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : rebuildStatus === "success"
-                  ? "bg-green-600 hover:bg-green-700"
-                  : "bg-blue-600 hover:bg-blue-700"
-              }`}
-            >
-              {rebuildStatus === "rebuilding" ? "Mise à jour..." : "Mettre à jour le site"}
-            </button>
-            <button
-              onClick={handleLogout}
-              className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-            >
-              Déconnexion
-            </button>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50 to-gray-100">
+      {/* Header moderne et coloré */}
+      <header className="bg-white shadow-xl border-b-4 border-blue-600">
+        <div className="max-w-7xl mx-auto px-6 py-5">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-blue-800 rounded-xl flex items-center justify-center shadow-lg">
+                <span className="text-white text-2xl font-bold">LS</span>
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-gray-900">Administration</h1>
+                <p className="text-sm text-gray-600 mt-1">Le Savoré - Gestion du contenu</p>
+              </div>
+            </div>
+            <div className="flex gap-3 items-center">
+              <button
+                onClick={triggerRebuild}
+                disabled={rebuildStatus === "rebuilding"}
+                className={`px-5 py-2.5 rounded-lg font-semibold transition-all shadow-lg ${
+                  rebuildStatus === "rebuilding"
+                    ? "bg-gray-400 text-white cursor-not-allowed"
+                    : rebuildStatus === "success"
+                    ? "bg-green-600 hover:bg-green-700 text-white"
+                    : "bg-blue-600 hover:bg-blue-700 text-white hover:shadow-xl"
+                }`}
+              >
+                {rebuildStatus === "rebuilding" ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                    </svg>
+                    Mise à jour...
+                  </span>
+                ) : rebuildStatus === "success" ? (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    Site mis à jour !
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    Mettre à jour le site
+                  </span>
+                )}
+              </button>
+              <button
+                onClick={handleLogout}
+                className="px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg font-semibold transition-all shadow-lg hover:shadow-xl flex items-center gap-2"
+              >
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                </svg>
+                Déconnexion
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      </header>
 
       {/* Notification Toast */}
       {notification && (
@@ -563,20 +601,38 @@ export default function AdminPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        {/* Tabs */}
-        <div className="flex gap-4 mb-6 border-b">
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Tabs modernes */}
+        <div className="flex gap-2 mb-8 bg-white p-2 rounded-xl shadow-lg border border-gray-200">
           <button
             onClick={() => setActiveTab("menu")}
-            className={`px-4 py-2 ${activeTab === "menu" ? "border-b-2 border-blue-600 font-semibold" : ""}`}
+            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === "menu"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
-            Menu
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+              </svg>
+              Menu
+            </span>
           </button>
           <button
             onClick={() => setActiveTab("drinks")}
-            className={`px-4 py-2 ${activeTab === "drinks" ? "border-b-2 border-blue-600 font-semibold" : ""}`}
+            className={`flex-1 px-6 py-3 rounded-lg font-semibold transition-all ${
+              activeTab === "drinks"
+                ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg"
+                : "text-gray-600 hover:bg-gray-100"
+            }`}
           >
-            Boissons
+            <span className="flex items-center justify-center gap-2">
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+              </svg>
+              Boissons
+            </span>
           </button>
         </div>
 
@@ -733,13 +789,43 @@ export default function AdminPage() {
           </div>
         )}
 
-        {/* Edit Modal */}
+        {/* Edit Modal - Version améliorée */}
         {editingItem && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-white p-6 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-              <h2 className="text-xl font-bold mb-4">
-                {isNew ? "Ajouter" : "Modifier"} {activeTab === "menu" ? "un élément du menu" : "une boisson"}
-              </h2>
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 rounded-t-xl">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold">
+                    {isNew ? (
+                      <span className="flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                        </svg>
+                        Ajouter {activeTab === "menu" ? "un élément du menu" : "une boisson"}
+                      </span>
+                    ) : (
+                      <span className="flex items-center gap-2">
+                        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                        Modifier {activeTab === "menu" ? "l'élément du menu" : "la boisson"}
+                      </span>
+                    )}
+                  </h2>
+                  <button
+                    onClick={() => {
+                      setEditingItem(null);
+                      setIsNew(false);
+                    }}
+                    className="text-white hover:text-gray-200 transition-colors"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+              </div>
+              <div className="p-6">
               
               {activeTab === "menu" && "name" in editingItem && (
                 <form
@@ -748,13 +834,13 @@ export default function AdminPage() {
                     const formData = new FormData(e.currentTarget);
                     handleSaveMenuItem({
                       name: formData.get("name") as string,
-                      description: formData.get("description") as string,
+                      description: editingItem.description || "",
                       price: parseFloat(formData.get("price") as string),
                       category: formData.get("category") as string,
                       tags: []
                     });
                   }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
                   <div>
                     <label className="block text-sm font-medium mb-1">Nom</label>
@@ -777,22 +863,31 @@ export default function AdminPage() {
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Prix (CHF)</label>
-                      <input
-                        type="number"
-                        name="price"
-                        step="0.01"
-                        defaultValue={editingItem.price}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        required
-                      />
+                      <label className="block text-sm font-semibold mb-2 text-gray-700">
+                        Prix (CHF) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">CHF</span>
+                        <input
+                          type="number"
+                          name="price"
+                          step="0.01"
+                          min="0"
+                          defaultValue={editingItem.price}
+                          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Catégorie</label>
+                      <label className="block text-sm font-semibold mb-2 text-gray-700">
+                        Catégorie <span className="text-red-500">*</span>
+                      </label>
                       <select
                         name="category"
                         defaultValue={editingItem.category || selectedCategory}
-                        className="w-full px-4 py-2 border rounded-lg"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white"
                         required
                       >
                         {MENU_CATEGORIES.map((cat) => (
@@ -801,11 +896,14 @@ export default function AdminPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3 pt-4 border-t">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                     >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                       Sauvegarder
                     </button>
                     <button
@@ -814,7 +912,7 @@ export default function AdminPage() {
                         setEditingItem(null);
                         setIsNew(false);
                       }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all"
                     >
                       Annuler
                     </button>
@@ -829,50 +927,68 @@ export default function AdminPage() {
                     const formData = new FormData(e.currentTarget);
                     handleSaveDrinkItem({
                       name: formData.get("name") as string,
-                      description: formData.get("description") as string,
+                      description: editingItem.description || "",
                       price: parseFloat(formData.get("price") as string),
                       category: formData.get("category") as "cocktail" | "wine" | "beer" | "non-alcoholic"
                     });
                   }}
-                  className="space-y-4"
+                  className="space-y-5"
                 >
                   <div>
-                    <label className="block text-sm font-medium mb-1">Nom</label>
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Nom de la boisson <span className="text-red-500">*</span>
+                    </label>
                     <input
                       type="text"
                       name="name"
                       defaultValue={editingItem.name}
-                      className="w-full px-4 py-2 border rounded-lg"
+                      className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                      placeholder="Ex: Cocktail Signature"
                       required
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <textarea
-                      name="description"
-                      defaultValue={editingItem.description}
-                      className="w-full px-4 py-2 border rounded-lg"
-                      rows={3}
+                    <label className="block text-sm font-semibold mb-2 text-gray-700">
+                      Description
+                      <span className="text-xs text-gray-500 ml-2 font-normal">(Utilisez les boutons pour formater le texte)</span>
+                    </label>
+                    <SimpleRichTextEditor
+                      value={editingItem.description || ""}
+                      onChange={(value) => {
+                        if (editingItem) {
+                          setEditingItem({ ...editingItem, description: value });
+                        }
+                      }}
+                      placeholder="Décrivez votre boisson... (vous pouvez utiliser le gras, l'italique, les listes, etc.)"
                     />
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium mb-1">Prix (CHF)</label>
-                      <input
-                        type="number"
-                        name="price"
-                        step="0.01"
-                        defaultValue={editingItem.price}
-                        className="w-full px-4 py-2 border rounded-lg"
-                        required
-                      />
+                      <label className="block text-sm font-semibold mb-2 text-gray-700">
+                        Prix (CHF) <span className="text-red-500">*</span>
+                      </label>
+                      <div className="relative">
+                        <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-500">CHF</span>
+                        <input
+                          type="number"
+                          name="price"
+                          step="0.01"
+                          min="0"
+                          defaultValue={editingItem.price}
+                          className="w-full pl-12 pr-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                          placeholder="0.00"
+                          required
+                        />
+                      </div>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium mb-1">Catégorie</label>
+                      <label className="block text-sm font-semibold mb-2 text-gray-700">
+                        Catégorie <span className="text-red-500">*</span>
+                      </label>
                       <select
                         name="category"
                         defaultValue={editingItem.category || selectedCategory}
-                        className="w-full px-4 py-2 border rounded-lg"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all bg-white"
                         required
                       >
                         {DRINK_CATEGORIES.map((cat) => (
@@ -881,11 +997,14 @@ export default function AdminPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3 pt-4 border-t">
                     <button
                       type="submit"
-                      className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all flex items-center justify-center gap-2"
                     >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
                       Sauvegarder
                     </button>
                     <button
@@ -894,7 +1013,7 @@ export default function AdminPage() {
                         setEditingItem(null);
                         setIsNew(false);
                       }}
-                      className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700"
+                      className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-semibold transition-all"
                     >
                       Annuler
                     </button>
@@ -902,6 +1021,7 @@ export default function AdminPage() {
                 </form>
               )}
 
+              </div>
             </div>
           </div>
         )}

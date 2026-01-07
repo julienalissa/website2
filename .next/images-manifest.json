@@ -51,7 +51,7 @@
       },
       {
         "protocol": "https",
-        "hostname": "^(?:^(?:rdisefatytjkgnqrbsqx\\.supabase\\.co)$)$",
+        "hostname": "^(?:(?!\\.)(?=.)[^/]*?\\.supabase\\.co\\/?)$",
         "pathname": "^(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$))(?:(?:(?!(?:^|\\/)\\.{1,2}(?:\\/|$)).)*?)\\/?)$"
       }
     ],

@@ -114,11 +114,20 @@ export async function createMenuItem(item: Omit<MenuItem, 'id'>) {
 }
 
 export async function updateMenuItem(id: string, item: Partial<MenuItem>) {
-  // Vérifier la session avant d'effectuer la mise à jour
+  // Vérifier et rafraîchir la session avant d'effectuer la mise à jour
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   
   if (sessionError || !session) {
     throw new Error('Vous devez être connecté pour modifier un élément');
+  }
+
+  // Rafraîchir le token si nécessaire
+  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      console.error('Erreur rafraîchissement session:', refreshError);
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
   }
 
   const { data, error } = await supabase
@@ -136,6 +145,10 @@ export async function updateMenuItem(id: string, item: Partial<MenuItem>) {
 
   if (error) {
     console.error('Erreur updateMenuItem:', error);
+    console.error('Détails session:', {
+      email: session.user?.email,
+      expiresAt: session.expires_at
+    });
     throw new Error(error.message || 'Erreur lors de la mise à jour');
   }
   return data;
@@ -187,11 +200,20 @@ export async function createDrinkItem(item: Omit<DrinkItem, 'id'>) {
 }
 
 export async function updateDrinkItem(id: string, item: Partial<DrinkItem>) {
-  // Vérifier la session avant d'effectuer la mise à jour
+  // Vérifier et rafraîchir la session avant d'effectuer la mise à jour
   const { data: { session }, error: sessionError } = await supabase.auth.getSession();
   
   if (sessionError || !session) {
     throw new Error('Vous devez être connecté pour modifier un élément');
+  }
+
+  // Rafraîchir le token si nécessaire
+  if (session.expires_at && session.expires_at * 1000 < Date.now() + 60000) {
+    const { error: refreshError } = await supabase.auth.refreshSession();
+    if (refreshError) {
+      console.error('Erreur rafraîchissement session:', refreshError);
+      throw new Error('Session expirée. Veuillez vous reconnecter.');
+    }
   }
 
   const { data, error } = await supabase
@@ -208,6 +230,10 @@ export async function updateDrinkItem(id: string, item: Partial<DrinkItem>) {
 
   if (error) {
     console.error('Erreur updateDrinkItem:', error);
+    console.error('Détails session:', {
+      email: session.user?.email,
+      expiresAt: session.expires_at
+    });
     throw new Error(error.message || 'Erreur lors de la mise à jour');
   }
   return data;

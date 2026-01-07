@@ -87,6 +87,13 @@ export async function getRestaurantInfo() {
 
 // Fonctions d'administration (nécessitent authentification)
 export async function createMenuItem(item: Omit<MenuItem, 'id'>) {
+  // Vérifier la session avant d'effectuer la création
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour créer un élément');
+  }
+
   const { data, error } = await supabase
     .from('menu_items')
     .insert({
@@ -99,11 +106,21 @@ export async function createMenuItem(item: Omit<MenuItem, 'id'>) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur createMenuItem:', error);
+    throw new Error(error.message || 'Erreur lors de la création');
+  }
   return data;
 }
 
 export async function updateMenuItem(id: string, item: Partial<MenuItem>) {
+  // Vérifier la session avant d'effectuer la mise à jour
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour modifier un élément');
+  }
+
   const { data, error } = await supabase
     .from('menu_items')
     .update({
@@ -117,20 +134,40 @@ export async function updateMenuItem(id: string, item: Partial<MenuItem>) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur updateMenuItem:', error);
+    throw new Error(error.message || 'Erreur lors de la mise à jour');
+  }
   return data;
 }
 
 export async function deleteMenuItem(id: string) {
+  // Vérifier la session avant d'effectuer la suppression
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour supprimer un élément');
+  }
+
   const { error } = await supabase
     .from('menu_items')
     .update({ is_active: false })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur deleteMenuItem:', error);
+    throw new Error(error.message || 'Erreur lors de la suppression');
+  }
 }
 
 export async function createDrinkItem(item: Omit<DrinkItem, 'id'>) {
+  // Vérifier la session avant d'effectuer la création
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour créer un élément');
+  }
+
   const { data, error } = await supabase
     .from('drink_items')
     .insert({
@@ -142,11 +179,21 @@ export async function createDrinkItem(item: Omit<DrinkItem, 'id'>) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur createDrinkItem:', error);
+    throw new Error(error.message || 'Erreur lors de la création');
+  }
   return data;
 }
 
 export async function updateDrinkItem(id: string, item: Partial<DrinkItem>) {
+  // Vérifier la session avant d'effectuer la mise à jour
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour modifier un élément');
+  }
+
   const { data, error } = await supabase
     .from('drink_items')
     .update({
@@ -159,17 +206,30 @@ export async function updateDrinkItem(id: string, item: Partial<DrinkItem>) {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur updateDrinkItem:', error);
+    throw new Error(error.message || 'Erreur lors de la mise à jour');
+  }
   return data;
 }
 
 export async function deleteDrinkItem(id: string) {
+  // Vérifier la session avant d'effectuer la suppression
+  const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+  
+  if (sessionError || !session) {
+    throw new Error('Vous devez être connecté pour supprimer un élément');
+  }
+
   const { error } = await supabase
     .from('drink_items')
     .update({ is_active: false })
     .eq('id', id);
 
-  if (error) throw error;
+  if (error) {
+    console.error('Erreur deleteDrinkItem:', error);
+    throw new Error(error.message || 'Erreur lors de la suppression');
+  }
 }
 
 export async function createGalleryImage(item: Omit<GalleryImage, 'id'>) {

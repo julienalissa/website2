@@ -127,6 +127,7 @@ export default function AdminPage() {
         email: email.trim(),
         options: {
           shouldCreateUser: false, // Ne pas créer d'utilisateur, seulement envoyer le code
+          emailRedirectTo: undefined, // Pas de redirection, on veut juste le code
         }
       });
 
@@ -245,6 +246,15 @@ export default function AdminPage() {
       await triggerRebuild();
     } catch (error) {
       console.error("Erreur:", error);
+      
+      // Logs détaillés pour le débogage
+      const { data: { session } } = await supabase.auth.getSession();
+      console.error("=== DÉTAILS DE L'ERREUR ===");
+      console.error("Erreur complète:", error);
+      console.error("Session email:", session?.user?.email);
+      console.error("Session expires_at:", session?.expires_at);
+      console.error("Session valide:", !!session);
+      
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
       showNotification(`Erreur: ${errorMessage}`, "error");
     }
@@ -259,7 +269,17 @@ export default function AdminPage() {
       await triggerRebuild();
     } catch (error) {
       console.error("Erreur:", error);
-      showNotification("Erreur lors de la suppression", "error");
+      
+      // Logs détaillés pour le débogage
+      const { data: { session } } = await supabase.auth.getSession();
+      console.error("=== DÉTAILS DE L'ERREUR (SUPPRESSION) ===");
+      console.error("Erreur complète:", error);
+      console.error("Session email:", session?.user?.email);
+      console.error("Session expires_at:", session?.expires_at);
+      console.error("Session valide:", !!session);
+      
+      const errorMessage = error instanceof Error ? error.message : "Erreur lors de la suppression";
+      showNotification(`Erreur: ${errorMessage}`, "error");
     }
   };
 
@@ -293,6 +313,15 @@ export default function AdminPage() {
       await triggerRebuild();
     } catch (error) {
       console.error("Erreur:", error);
+      
+      // Logs détaillés pour le débogage
+      const { data: { session } } = await supabase.auth.getSession();
+      console.error("=== DÉTAILS DE L'ERREUR (BOISSON) ===");
+      console.error("Erreur complète:", error);
+      console.error("Session email:", session?.user?.email);
+      console.error("Session expires_at:", session?.expires_at);
+      console.error("Session valide:", !!session);
+      
       const errorMessage = error instanceof Error ? error.message : "Erreur lors de la sauvegarde";
       showNotification(`Erreur: ${errorMessage}`, "error");
     }

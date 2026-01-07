@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Diagnostic RLS - Le Savoré</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            border-bottom: 2px solid #4CAF50;
+            padding-bottom: 10px;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f9f9f9;
+            border-left: 4px solid #4CAF50;
+        }
+        button {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover {
+            background: #45a049;
+        }
+        .result {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .error {
+            border-left: 4px solid #f44336;
+            background: #ffebee;
+        }
+        .success {
+            border-left: 4px solid #4CAF50;
+            background: #e8f5e9;
+        }
+        .warning {
+            border-left: 4px solid #ff9800;
+            background: #fff3e0;
+        }
+        .copy-btn {
+            background: #2196F3;
+            font-size: 12px;
+            padding: 6px 12px;
+        }
+        .copy-btn:hover {
+            background: #0b7dda;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Diagnostic RLS - Le Savoré Admin</h1>
+        <p>Ce script collecte automatiquement toutes les informations nécessaires pour déboguer les problèmes RLS.</p>
+        
+        <div class="section">
+            <h2>1. Informations de Session</h2>
+            <button onclick="checkSession()">Vérifier la Session</button>
+            <div id="session-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>2. Test de Connexion Supabase</h2>
+            <button onclick="testConnection()">Tester la Connexion</button>
+            <div id="connection-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>3. Test de Lecture (SELECT)</h2>
+            <button onclick="testSelect()">Tester la Lecture</button>
+            <div id="select-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>4. Test d'Écriture (INSERT/UPDATE)</h2>
+            <p><strong>⚠️ Attention :</strong> Ce test va créer un élément de test dans votre base de données.</p>
+            <button onclick="testInsert()">Tester l'Insertion</button>
+            <button onclick="testUpdate()">Tester la Mise à Jour</button>
+            <div id="write-result" class="result" style="display:none;"></div>
+        </div>
+
+        <div class="section">
+            <h2>5. Rapport Complet</h2>
+            <button onclick="generateFullReport()">Générer le Rapport Complet</button>
+            <button onclick="copyReport()" class="copy-btn" id="copy-btn" style="display:none;">Copier le Rapport</button>
+            <div id="full-report" class="result" style="display:none;"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        // Importer Supabase (vous devrez adapter l'URL selon votre configuration)
+        import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
+        
+        // ⚠️ REMPLACEZ ces valeurs par vos vraies clés Supabase
+        const SUPABASE_URL = 'https://ineeubddwtknkanqmkgli.supabase.co';
+        const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImluZWV1YmRkd3Rua2FucW1rZ2xpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Njc3Njg1MzYsImV4cCI6MjA4MzM0NDUzNn0.TnE2m6qeXQFTW4pmJjWbi8ICZ--bEtE4TAN_8SzUY6Y';
+        
+        const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        
+        window.supabase = supabase;
+        
+        async function checkSession() {
+            const resultDiv = document.getElementById('session-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Vérification en cours...';
+            
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                
+                let output = '=== INFORMATIONS DE SESSION ===\n\n';
+                
+                if (error) {
+                    output += `❌ ERREUR: ${error.message}\n\n`;
+                    resultDiv.className = 'result error';
+                } else if (!session) {
+                    output += `⚠️ Aucune session active. Vous devez être connecté.\n`;
+                    output += `\nPour vous connecter:\n`;
+                    output += `1. Allez sur https://vraisavore.vercel.app/admin\n`;
+                    output += `2. Connectez-vous avec votre email et code OTP\n`;
+                    output += `3. Revenez sur cette page et réessayez\n`;
+                    resultDiv.className = 'result warning';
+                } else {
+                    output += `✅ Session active\n\n`;
+                    output += `Email: ${session.user?.email || 'N/A'}\n`;
+                    output += `User ID: ${session.user?.id || 'N/A'}\n`;
+                    output += `Expires At: ${new Date(session.expires_at * 1000).toLocaleString()}\n`;
+                    output += `Expires In: ${Math.round((session.expires_at * 1000 - Date.now()) / 1000 / 60)} minutes\n`;
+                    
+                    // Décoder le JWT
+                    try {
+                        const payload = JSON.parse(atob(session.access_token.split('.')[1]));
+                        output += `\n=== JWT PAYLOAD ===\n`;
+                        output += `Email dans JWT: ${payload.email || 'N/A'}\n`;
+                        output += `Exp: ${new Date(payload.exp * 1000).toLocaleString()}\n`;
+                    } catch (e) {
+                        output += `\n⚠️ Impossible de décoder le JWT\n`;
+                    }
+                    
+                    resultDiv.className = 'result success';
+                }
+                
+                resultDiv.textContent = output;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erreur: ${error.message}`;
+            }
+        }
+        
+        async function testConnection() {
+            const resultDiv = document.getElementById('connection-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Test en cours...';
+            
+            try {
+                const { data, error } = await supabase.from('menu_items').select('count').limit(1);
+                
+                let output = '=== TEST DE CONNEXION ===\n\n';
+                
+                if (error) {
+                    output += `❌ ERREUR: ${error.message}\n`;
+                    output += `Code: ${error.code || 'N/A'}\n`;
+                    output += `Détails: ${JSON.stringify(error, null, 2)}\n`;
+                    resultDiv.className = 'result error';
+                } else {
+                    output += `✅ Connexion réussie\n`;
+                    resultDiv.className = 'result success';
+                }
+                
+                resultDiv.textContent = output;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erreur: ${error.message}`;
+            }
+        }
+        
+        async function testSelect() {
+            const resultDiv = document.getElementById('select-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Test en cours...';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('menu_items')
+                    .select('*')
+                    .eq('is_active', true)
+                    .limit(5);
+                
+                let output = '=== TEST DE LECTURE (SELECT) ===\n\n';
+                
+                if (error) {
+                    output += `❌ ERREUR: ${error.message}\n`;
+                    output += `Code: ${error.code || 'N/A'}\n`;
+                    output += `Détails: ${JSON.stringify(error, null, 2)}\n`;
+                    resultDiv.className = 'result error';
+                } else {
+                    output += `✅ Lecture réussie\n`;
+                    output += `Nombre d'éléments lus: ${data?.length || 0}\n\n`;
+                    if (data && data.length > 0) {
+                        output += `Premier élément:\n${JSON.stringify(data[0], null, 2)}\n`;
+                    }
+                    resultDiv.className = 'result success';
+                }
+                
+                resultDiv.textContent = output;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erreur: ${error.message}`;
+            }
+        }
+        
+        async function testInsert() {
+            const resultDiv = document.getElementById('write-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Test en cours...';
+            
+            try {
+                const { data, error } = await supabase
+                    .from('menu_items')
+                    .insert({
+                        name: 'TEST - À SUPPRIMER',
+                        description: 'Élément de test créé par le script de diagnostic',
+                        price: 0.01,
+                        category: 'Entrées',
+                        tags: ['test']
+                    })
+                    .select()
+                    .single();
+                
+                let output = '=== TEST D\'INSERTION (INSERT) ===\n\n';
+                
+                if (error) {
+                    output += `❌ ERREUR: ${error.message}\n`;
+                    output += `Code: ${error.code || 'N/A'}\n`;
+                    output += `Détails: ${JSON.stringify(error, null, 2)}\n`;
+                    resultDiv.className = 'result error';
+                } else {
+                    output += `✅ Insertion réussie\n`;
+                    output += `ID créé: ${data?.id}\n\n`;
+                    output += `⚠️ IMPORTANT: Supprimez cet élément de test depuis l'interface admin !\n`;
+                    resultDiv.className = 'result success';
+                }
+                
+                resultDiv.textContent = output;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erreur: ${error.message}`;
+            }
+        }
+        
+        async function testUpdate() {
+            const resultDiv = document.getElementById('write-result');
+            resultDiv.style.display = 'block';
+            resultDiv.className = 'result';
+            resultDiv.textContent = 'Test en cours...';
+            
+            try {
+                // D'abord, récupérer un élément existant
+                const { data: items, error: selectError } = await supabase
+                    .from('menu_items')
+                    .select('id, name')
+                    .eq('is_active', true)
+                    .limit(1);
+                
+                if (selectError || !items || items.length === 0) {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Impossible de trouver un élément à modifier. Erreur: ${selectError?.message || 'Aucun élément trouvé'}`;
+                    return;
+                }
+                
+                const itemId = items[0].id;
+                const originalName = items[0].name;
+                
+                const { data, error } = await supabase
+                    .from('menu_items')
+                    .update({ name: originalName }) // On remet le nom original
+                    .eq('id', itemId)
+                    .select()
+                    .single();
+                
+                let output = '=== TEST DE MISE À JOUR (UPDATE) ===\n\n';
+                
+                if (error) {
+                    output += `❌ ERREUR: ${error.message}\n`;
+                    output += `Code: ${error.code || 'N/A'}\n`;
+                    output += `Détails: ${JSON.stringify(error, null, 2)}\n`;
+                    resultDiv.className = 'result error';
+                } else {
+                    output += `✅ Mise à jour réussie\n`;
+                    output += `ID modifié: ${data?.id}\n`;
+                    resultDiv.className = 'result success';
+                }
+                
+                resultDiv.textContent = output;
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erreur: ${error.message}`;
+            }
+        }
+        
+        async function generateFullReport() {
+            const reportDiv = document.getElementById('full-report');
+            reportDiv.style.display = 'block';
+            reportDiv.className = 'result';
+            reportDiv.textContent = 'Génération du rapport en cours...';
+            
+            let report = '=== RAPPORT COMPLET DE DIAGNOSTIC RLS ===\n';
+            report += `Date: ${new Date().toLocaleString()}\n\n`;
+            
+            // 1. Session
+            report += '=== 1. INFORMATIONS DE SESSION ===\n';
+            try {
+                const { data: { session }, error } = await supabase.auth.getSession();
+                if (error) {
+                    report += `❌ ERREUR: ${error.message}\n\n`;
+                } else if (!session) {
+                    report += `⚠️ Aucune session active\n\n`;
+                } else {
+                    report += `✅ Session active\n`;
+                    report += `Email: ${session.user?.email || 'N/A'}\n`;
+                    report += `User ID: ${session.user?.id || 'N/A'}\n`;
+                    report += `Expires At: ${new Date(session.expires_at * 1000).toLocaleString()}\n\n`;
+                }
+            } catch (error) {
+                report += `❌ Erreur: ${error.message}\n\n`;
+            }
+            
+            // 2. Test de lecture
+            report += '=== 2. TEST DE LECTURE (SELECT) ===\n';
+            try {
+                const { data, error } = await supabase
+                    .from('menu_items')
+                    .select('*')
+                    .eq('is_active', true)
+                    .limit(1);
+                
+                if (error) {
+                    report += `❌ ERREUR: ${error.message}\n`;
+                    report += `Code: ${error.code || 'N/A'}\n\n`;
+                } else {
+                    report += `✅ Lecture réussie\n\n`;
+                }
+            } catch (error) {
+                report += `❌ Erreur: ${error.message}\n\n`;
+            }
+            
+            // 3. Test d'écriture
+            report += '=== 3. TEST D\'ÉCRITURE (UPDATE) ===\n';
+            try {
+                const { data: items } = await supabase
+                    .from('menu_items')
+                    .select('id')
+                    .eq('is_active', true)
+                    .limit(1)
+                    .single();
+                
+                if (items) {
+                    const { error } = await supabase
+                        .from('menu_items')
+                        .update({ name: items.name })
+                        .eq('id', items.id);
+                    
+                    if (error) {
+                        report += `❌ ERREUR: ${error.message}\n`;
+                        report += `Code: ${error.code || 'N/A'}\n`;
+                        report += `Détails: ${JSON.stringify(error, null, 2)}\n\n`;
+                    } else {
+                        report += `✅ Mise à jour réussie\n\n`;
+                    }
+                } else {
+                    report += `⚠️ Aucun élément trouvé pour le test\n\n`;
+                }
+            } catch (error) {
+                report += `❌ Erreur: ${error.message}\n\n`;
+            }
+            
+            report += '=== FIN DU RAPPORT ===\n';
+            report += '\n📋 Instructions:\n';
+            report += '1. Copiez ce rapport complet\n';
+            report += '2. Envoyez-le avec votre message d\'erreur\n';
+            report += '3. Incluez aussi l\'erreur exacte de la console du navigateur\n';
+            
+            reportDiv.textContent = report;
+            document.getElementById('copy-btn').style.display = 'inline-block';
+            window.diagnosticReport = report;
+        }
+        
+        function copyReport() {
+            const report = document.getElementById('full-report').textContent;
+            navigator.clipboard.writeText(report).then(() => {
+                alert('Rapport copié dans le presse-papiers !');
+            });
+        }
+        
+        // Exposer les fonctions globalement
+        window.checkSession = checkSession;
+        window.testConnection = testConnection;
+        window.testSelect = testSelect;
+        window.testInsert = testInsert;
+        window.testUpdate = testUpdate;
+        window.generateFullReport = generateFullReport;
+        window.copyReport = copyReport;
+    </script>
+</body>
+</html>

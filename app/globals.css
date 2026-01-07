@@ -1,0 +1,237 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-parchment-200 text-text-body font-sans antialiased;
+    /* Subtle paper texture */
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(212, 150, 83, 0.02) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(44, 44, 44, 0.01) 0%, transparent 50%);
+    background-attachment: fixed;
+  }
+
+  body.intro-active {
+    overflow: hidden;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif text-text-dark;
+    font-weight: 500;
+    letter-spacing: 0.02em;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1 {
+    letter-spacing: 0.01em;
+  }
+
+  h2 {
+    letter-spacing: 0.015em;
+  }
+
+  p {
+    @apply text-text-body leading-relaxed;
+    letter-spacing: 0.01em;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto w-full max-w-7xl px-6 sm:px-8 lg:px-12;
+  }
+
+  .section-padding {
+    @apply py-section md:py-section-lg;
+  }
+
+  /* Texture overlay utility */
+  .texture-overlay {
+    position: relative;
+  }
+
+  .texture-overlay::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image: 
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(0, 0, 0, 0.03) 2px,
+        rgba(0, 0, 0, 0.03) 4px
+      ),
+      url("data:image/svg+xml,%3Csvg viewBox='0 0 400 400' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    background-size: 200px 200px, 100px 100px;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Warm light gradient */
+  .warm-light {
+    position: relative;
+  }
+
+  .warm-light::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at 30% 40%,
+      rgba(212, 150, 83, 0.08) 0%,
+      transparent 60%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Subtle vignette */
+  .vignette {
+    position: relative;
+  }
+
+  .vignette::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      ellipse at center,
+      transparent 0%,
+      transparent 60%,
+      rgba(0, 0, 0, 0.03) 100%
+    );
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Decorative divider */
+  .divider-elegant {
+    position: relative;
+    padding: 2rem 0;
+  }
+
+  .divider-elegant::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 1px;
+    background: linear-gradient(
+      to right,
+      transparent,
+      rgba(212, 150, 83, 0.3),
+      transparent
+    );
+  }
+
+  .divider-elegant::after {
+    content: '◆';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: rgba(212, 150, 83, 0.2);
+    font-size: 0.5rem;
+    letter-spacing: 0;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-md bg-charleston-green px-8 py-3.5 text-sm font-medium text-white transition-all duration-300 hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-charleston-green focus:ring-offset-2 focus:ring-offset-parchment-200;
+    letter-spacing: 0.05em;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .btn-primary::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(
+      circle at center,
+      rgba(255, 255, 255, 0.1) 0%,
+      transparent 70%
+    );
+    opacity: 0;
+    transition: opacity 0.3s ease;
+  }
+
+  .btn-primary:hover::before {
+    opacity: 1;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-md border-2 border-charleston-green px-8 py-3.5 text-sm font-medium text-charleston-green transition-all duration-300 hover:opacity-80 focus:outline-none focus:ring-2 focus:ring-charleston-green focus:ring-offset-2;
+    letter-spacing: 0.05em;
+    position: relative;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  /* Image container with organic overflow */
+  .image-organic {
+    position: relative;
+    overflow: visible;
+  }
+
+  .image-organic img {
+    transition: transform 1.2s cubic-bezier(0.25, 0.1, 0.25, 1);
+  }
+
+  .image-organic:hover img {
+    transform: scale(1.02);
+  }
+}
+
+@layer utilities {
+  .fade-in {
+    animation: fadeIn 0.8s ease-out;
+  }
+
+  .slide-up {
+    animation: slideUp 0.8s ease-out;
+  }
+
+  @keyframes fadeIn {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes slideUp {
+    from {
+      opacity: 0;
+      transform: translateY(15px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

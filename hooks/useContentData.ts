@@ -14,20 +14,22 @@ export function useContentData() {
   useEffect(() => {
     async function loadData() {
       try {
-        // Essayer de charger depuis Supabase
+        // TOUJOURS charger depuis Supabase en priorité
         const [menu, drinks, gallery] = await Promise.all([
           getMenuItems(),
           getDrinkItems(),
           getGalleryImages()
         ]);
 
-        // Si on a des données depuis Supabase, les utiliser
-        if (menu.length > 0) setMenuItemsData(menu);
-        if (drinks.length > 0) setDrinkItemsData(drinks);
-        if (gallery.length > 0) setGalleryImagesData(gallery);
+        // Utiliser les données de Supabase même si elles sont vides
+        // Cela permet de voir les modifications en temps réel
+        setMenuItemsData(menu);
+        setDrinkItemsData(drinks);
+        setGalleryImagesData(gallery);
       } catch (error) {
-        console.error("Erreur lors du chargement depuis Supabase, utilisation des données par défaut:", error);
+        console.error("Erreur lors du chargement depuis Supabase:", error);
         // En cas d'erreur, on garde les données par défaut de lib/data.ts
+        // Mais on ne les utilise que si Supabase échoue vraiment
       } finally {
         setLoading(false);
       }

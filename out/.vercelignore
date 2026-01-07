@@ -1,2 +1,2 @@
-# Ignorer tout sauf les fichiers statiques
-# Ce fichier indique à Vercel de ne pas builder
+# Ce projet contient uniquement des fichiers statiques
+# Aucun build n'est nécessaire

@@ -2,10 +2,10 @@
   "/_not-found/page": "/_not-found",
   "/about/page": "/about",
   "/contact/page": "/contact",
-  "/menu/page": "/menu",
+  "/drinks/page": "/drinks",
   "/events/page": "/events",
-  "/admin/page": "/admin",
-  "/page": "/",
+  "/menu/page": "/menu",
   "/gallery/page": "/gallery",
-  "/drinks/page": "/drinks"
+  "/admin/page": "/admin",
+  "/page": "/"
 }

@@ -1,18 +1,6 @@
 {
   "version": 2,
-  "builds": [],
-  "routes": [
-    {
-      "src": "/admin",
-      "dest": "/admin/index.html"
-    },
-    {
-      "src": "/admin/",
-      "dest": "/admin/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/$1"
-    }
-  ]
+  "public": true,
+  "cleanUrls": false,
+  "trailingSlash": true
 }

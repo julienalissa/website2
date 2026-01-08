@@ -4,6 +4,7 @@ import { ImagePlaceholder } from "@/components/ImagePlaceholder";
 import { motion } from "framer-motion";
 import { restaurantInfo } from "@/lib/data";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { useAboutData } from "@/hooks/useAboutData";
 
 const sectionVariants = {
   hidden: { opacity: 0 },
@@ -43,6 +44,15 @@ const imageVariants = {
 
 export default function AboutPage() {
   const { t } = useLanguage();
+  const { aboutData, loading } = useAboutData();
+  
+  if (loading) {
+    return (
+      <div className="bg-parchment-200 min-h-screen texture-overlay flex items-center justify-center">
+        <div className="text-xl">Chargement...</div>
+      </div>
+    );
+  }
   
   return (
     <div className="bg-parchment-200 min-h-screen texture-overlay">
@@ -70,7 +80,7 @@ export default function AboutPage() {
             transition={{ duration: 0.8, ease: [0.25, 0.1, 0.25, 1] }}
             className="text-5xl md:text-6xl font-serif font-medium text-white tracking-tight"
           >
-            {t.about.title}
+            {aboutData.pageTitle}
           </motion.h1>
         </div>
       </section>
@@ -92,26 +102,29 @@ export default function AboutPage() {
                 className="text-3xl font-serif font-medium text-text-dark mb-6 tracking-tight"
                 style={{ letterSpacing: '0.02em' }}
               >
-                {t.about.legacy}
+                {aboutData.legacyTitle}
               </motion.h2>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-text-body mb-6 leading-relaxed"
-              >
-                {t.about.legacyText1}
-              </motion.p>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-text-body mb-6 leading-relaxed"
-              >
-                {t.about.legacyText2}
-              </motion.p>
-              <motion.p
-                variants={itemVariants}
-                className="text-lg text-text-body mb-6 leading-relaxed"
-              >
-                {t.about.legacyText3}
-              </motion.p>
+              {aboutData.legacyText1 && (
+                <motion.div
+                  variants={itemVariants}
+                  className="text-lg text-text-body mb-6 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: aboutData.legacyText1 }}
+                />
+              )}
+              {aboutData.legacyText2 && (
+                <motion.div
+                  variants={itemVariants}
+                  className="text-lg text-text-body mb-6 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: aboutData.legacyText2 }}
+                />
+              )}
+              {aboutData.legacyText3 && (
+                <motion.div
+                  variants={itemVariants}
+                  className="text-lg text-text-body mb-6 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: aboutData.legacyText3 }}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -152,21 +165,33 @@ export default function AboutPage() {
                 className="text-3xl md:text-4xl font-serif font-medium text-text-dark mb-6 tracking-tight"
                 style={{ letterSpacing: '0.02em' }}
               >
-                {t.about.philosophy}
+                {aboutData.philosophyTitle}
               </motion.h2>
               <div className="space-y-4 text-lg text-text-body">
-                <motion.p variants={itemVariants}>
-                  <strong className="text-charleston-green">{t.about.swissQuality} :</strong> {t.about.swissQualityText}
-                </motion.p>
-                <motion.p variants={itemVariants}>
-                  <strong className="text-charleston-green">{t.about.seasonalCuisine} :</strong> {t.about.seasonalCuisineText}
-                </motion.p>
-                <motion.p variants={itemVariants}>
-                  <strong className="text-charleston-green">{t.about.culinaryCraftsmanship} :</strong> {t.about.culinaryCraftsmanshipText}
-                </motion.p>
-                <motion.p variants={itemVariants}>
-                  <strong className="text-charleston-green">{t.about.warmHospitality} :</strong> {t.about.warmHospitalityText}
-                </motion.p>
+                {aboutData.swissQuality && (
+                  <motion.div
+                    variants={itemVariants}
+                    dangerouslySetInnerHTML={{ __html: aboutData.swissQuality }}
+                  />
+                )}
+                {aboutData.seasonalCuisine && (
+                  <motion.div
+                    variants={itemVariants}
+                    dangerouslySetInnerHTML={{ __html: aboutData.seasonalCuisine }}
+                  />
+                )}
+                {aboutData.culinaryCraftsmanship && (
+                  <motion.div
+                    variants={itemVariants}
+                    dangerouslySetInnerHTML={{ __html: aboutData.culinaryCraftsmanship }}
+                  />
+                )}
+                {aboutData.warmHospitality && (
+                  <motion.div
+                    variants={itemVariants}
+                    dangerouslySetInnerHTML={{ __html: aboutData.warmHospitality }}
+                  />
+                )}
               </div>
             </motion.div>
           </div>

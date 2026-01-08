@@ -19,7 +19,8 @@ import {
   upsertPageContent,
   getRestaurantInfo,
   updateRestaurantInfo,
-  getAllGalleryImages
+  getAllGalleryImages,
+  getPageContent
 } from "@/lib/cms-admin";
 
 // Catégories de menu
@@ -277,12 +278,116 @@ export default function AdminPage() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [menu, drinks] = await Promise.all([
+      const [menu, drinks, aboutContent, homeContent, contactContent, eventsContent, restaurantInfoData] = await Promise.all([
         getMenuItems(),
-        getDrinkItems()
+        getDrinkItems(),
+        getPageContent("about"),
+        getPageContent("home"),
+        getPageContent("contact"),
+        getPageContent("events"),
+        getRestaurantInfo()
       ]);
+      
       setMenuItems(menu);
       setDrinkItems(drinks);
+      
+      // Charger les données About depuis Supabase
+      if (aboutContent.length > 0) {
+        const contentMap: Record<string, string> = {};
+        aboutContent.forEach(item => {
+          contentMap[item.section_key] = item.content_value || "";
+        });
+        
+        setAboutData({
+          pageTitle: contentMap["page-title"] || "Notre Histoire",
+          legacyTitle: contentMap["legacy-title"] || "Notre Héritage",
+          legacyText1: contentMap["legacy-text-1"] || "",
+          legacyText2: contentMap["legacy-text-2"] || "",
+          legacyText3: contentMap["legacy-text-3"] || "",
+          philosophyTitle: contentMap["philosophy-title"] || "Notre Philosophie",
+          swissQuality: contentMap["swiss-quality"] || "",
+          seasonalCuisine: contentMap["seasonal-cuisine"] || "",
+          culinaryCraftsmanship: contentMap["culinary-craftsmanship"] || "",
+          warmHospitality: contentMap["warm-hospitality"] || ""
+        });
+      }
+      
+      // Charger les données Home depuis Supabase
+      if (homeContent.length > 0) {
+        const contentMap: Record<string, string> = {};
+        homeContent.forEach(item => {
+          contentMap[item.section_key] = item.content_value || "";
+        });
+        
+        setHomeData({
+          heroTitle: contentMap["hero-title"] || "Le Savoré",
+          tagline: contentMap["tagline"] || "Fine Dining en Suisse",
+          description: contentMap["description"] || "",
+          seasonalTitle: contentMap["seasonal-title"] || "Excellence de Saison",
+          seasonalDescription: contentMap["seasonal-description"] || ""
+        });
+      }
+      
+      // Charger les données Contact depuis Supabase
+      if (contactContent.length > 0) {
+        const contentMap: Record<string, string> = {};
+        contactContent.forEach(item => {
+          contentMap[item.section_key] = item.content_value || "";
+        });
+        
+        setContactData({
+          pageTitle: contentMap["page-title"] || "Contact",
+          getInTouchTitle: contentMap["get-in-touch-title"] || "Prendre Contact",
+          getInTouchDescription: contentMap["get-in-touch-description"] || "",
+          address: restaurantInfoData?.address || "",
+          phone: restaurantInfoData?.phone || "",
+          email: restaurantInfoData?.email || "",
+          sendMessageTitle: contentMap["send-message-title"] || "Envoyer un Message",
+          hours_monday: restaurantInfoData?.hours_monday || "",
+          hours_tuesday: restaurantInfoData?.hours_tuesday || "",
+          hours_wednesday: restaurantInfoData?.hours_wednesday || "",
+          hours_thursday: restaurantInfoData?.hours_thursday || "",
+          hours_friday: restaurantInfoData?.hours_friday || "",
+          hours_saturday: restaurantInfoData?.hours_saturday || "",
+          hours_sunday: restaurantInfoData?.hours_sunday || ""
+        });
+      }
+      
+      // Charger les données Events depuis Supabase
+      if (eventsContent.length > 0) {
+        const contentMap: Record<string, string> = {};
+        eventsContent.forEach(item => {
+          contentMap[item.section_key] = item.content_value || "";
+        });
+        
+        setEventsData({
+          pageTitle: contentMap["page-title"] || "Événements Privés & Célébrations",
+          subtitle: contentMap["subtitle"] || "Créez des moments inoubliables",
+          eventTypesTitle: contentMap["event-types-title"] || "Types d'Événements",
+          eventTypesDescription: contentMap["event-types-description"] || "",
+          smallWeddingTitle: contentMap["small-wedding-title"] || "Petit Mariage",
+          smallWeddingDescription: contentMap["small-wedding-description"] || "",
+          baptismBirthdayTitle: contentMap["baptism-birthday-title"] || "Baptême / Anniversaire",
+          baptismBirthdayDescription: contentMap["baptism-birthday-description"] || "",
+          corporateMealTitle: contentMap["corporate-meal-title"] || "Repas d'Entreprise",
+          corporateMealDescription: contentMap["corporate-meal-description"] || "",
+          afterCeremonyMealTitle: contentMap["after-ceremony-meal-title"] || "Repas après Cérémonie",
+          afterCeremonyMealDescription: contentMap["after-ceremony-meal-description"] || "",
+          customMenusTitle: contentMap["custom-menus-title"] || "Menus Personnalisés",
+          customMenusDescription: contentMap["custom-menus-description"] || "",
+          dedicatedServiceTitle: contentMap["dedicated-service-title"] || "Service Dédié",
+          dedicatedServiceDescription: contentMap["dedicated-service-description"] || "",
+          elegantAtmosphereTitle: contentMap["elegant-atmosphere-title"] || "Atmosphère Élégante",
+          elegantAtmosphereDescription: contentMap["elegant-atmosphere-description"] || "",
+          swissQualityTitle: contentMap["swiss-quality-title"] || "Qualité Suisse",
+          swissQualityDescription: contentMap["swiss-quality-description"] || ""
+        });
+      }
+      
+      // Charger les données Restaurant
+      if (restaurantInfoData) {
+        setRestaurantInfo(restaurantInfoData);
+      }
     } catch (error) {
       console.error("Erreur lors du chargement:", error);
       alert("Erreur lors du chargement des données");
@@ -319,9 +424,8 @@ export default function AdminPage() {
       setEditingItem(null);
       setIsNew(false);
       setSelectedCategory("");
-      showNotification("Élément sauvegardé ! Mise à jour du site en cours...", "success");
-      // Déclencher le rebuild automatiquement
-      await triggerRebuild();
+      showNotification("Élément sauvegardé ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error) {
       console.error("Erreur:", error);
       
@@ -343,8 +447,8 @@ export default function AdminPage() {
     try {
       await deleteMenuItem(id);
       await loadData();
-      showNotification("Élément supprimé ! Mise à jour du site en cours...", "success");
-      await triggerRebuild();
+      showNotification("Élément supprimé ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error) {
       console.error("Erreur:", error);
       
@@ -387,8 +491,8 @@ export default function AdminPage() {
       setEditingItem(null);
       setIsNew(false);
       setSelectedCategory("");
-      showNotification("Boisson sauvegardée ! Mise à jour du site en cours...", "success");
-      await triggerRebuild();
+      showNotification("Boisson sauvegardée ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error) {
       console.error("Erreur:", error);
       
@@ -410,8 +514,8 @@ export default function AdminPage() {
     try {
       await deleteDrinkItem(id);
       await loadData();
-      showNotification("Boisson supprimée ! Mise à jour du site en cours...", "success");
-      await triggerRebuild();
+      showNotification("Boisson supprimée ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error) {
       console.error("Erreur:", error);
       showNotification("Erreur lors de la suppression", "error");
@@ -419,25 +523,21 @@ export default function AdminPage() {
   };
 
   // Fonction de sauvegarde générique pour les pages
+  // Utilisée uniquement par saveAllChanges() - ne montre pas de notification
   const handleSavePageContent = async (pageSlug: string, sections: Record<string, string>) => {
-    setSaving(prev => ({ ...prev, [pageSlug]: true }));
     try {
       const promises = Object.entries(sections).map(([key, value]) =>
         upsertPageContent({
           page_slug: pageSlug,
           section_key: key,
-          content_type: key.includes('Description') || key.includes('Text') ? 'html' : 'text',
+          content_type: key.includes('Description') || key.includes('Text') || key.includes('text') ? 'html' : 'text',
           content_value: value
         })
       );
       await Promise.all(promises);
-      showNotification(`Modifications de la page "${pageSlug}" sauvegardées avec succès !`, "success");
-      await triggerRebuild();
     } catch (error: any) {
-      console.error("Erreur lors de la sauvegarde:", error);
-      showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
-    } finally {
-      setSaving(prev => ({ ...prev, [pageSlug]: false }));
+      console.error(`Erreur lors de la sauvegarde de la page "${pageSlug}":`, error);
+      throw error;
     }
   };
   
@@ -495,8 +595,8 @@ export default function AdminPage() {
         hours_sunday: contactData.hours_sunday
       });
       
-      showNotification("Modifications de la page Contact sauvegardées avec succès !", "success");
-      await triggerRebuild();
+      showNotification("Modifications de la page Contact sauvegardées ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error);
       showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
@@ -552,8 +652,8 @@ export default function AdminPage() {
         hours_sunday: restaurantInfo?.hours_sunday || ""
       });
       
-      showNotification("Informations du restaurant sauvegardées avec succès !", "success");
-      await triggerRebuild();
+      showNotification("Informations du restaurant sauvegardées ! Cliquez sur \"Mettre à jour le site\" pour publier.", "success");
+      // NE PAS appeler triggerRebuild() ici - l'utilisateur doit cliquer sur "Mettre à jour le site"
     } catch (error: any) {
       console.error("Erreur lors de la sauvegarde:", error);
       showNotification(`Erreur lors de la sauvegarde: ${error.message}`, "error");
@@ -563,18 +663,102 @@ export default function AdminPage() {
   };
 
 
+  // Fonction pour sauvegarder TOUTES les modifications en une fois
+  const saveAllChanges = async () => {
+    try {
+      // Sauvegarder la page Home
+      await handleSavePageContent("home", {
+        "hero-title": homeData.heroTitle,
+        "tagline": homeData.tagline,
+        "description": homeData.description,
+        "seasonal-title": homeData.seasonalTitle,
+        "seasonal-description": homeData.seasonalDescription
+      });
+      
+      // Sauvegarder la page About
+      await handleSavePageContent("about", {
+        "page-title": aboutData.pageTitle,
+        "legacy-title": aboutData.legacyTitle,
+        "legacy-text-1": aboutData.legacyText1,
+        "legacy-text-2": aboutData.legacyText2,
+        "legacy-text-3": aboutData.legacyText3,
+        "philosophy-title": aboutData.philosophyTitle,
+        "swiss-quality": aboutData.swissQuality,
+        "seasonal-cuisine": aboutData.seasonalCuisine,
+        "culinary-craftsmanship": aboutData.culinaryCraftsmanship,
+        "warm-hospitality": aboutData.warmHospitality
+      });
+      
+      // Sauvegarder la page Contact
+      await handleSavePageContent("contact", {
+        "page-title": contactData.pageTitle,
+        "get-in-touch-title": contactData.getInTouchTitle,
+        "get-in-touch-description": contactData.getInTouchDescription,
+        "send-message-title": contactData.sendMessageTitle
+      });
+      
+      // Sauvegarder les informations du restaurant
+      await updateRestaurantInfo({
+        address: contactData.address,
+        phone: contactData.phone,
+        email: contactData.email,
+        hours_monday: contactData.hours_monday,
+        hours_tuesday: contactData.hours_tuesday,
+        hours_wednesday: contactData.hours_wednesday,
+        hours_thursday: contactData.hours_thursday,
+        hours_friday: contactData.hours_friday,
+        hours_saturday: contactData.hours_saturday,
+        hours_sunday: contactData.hours_sunday
+      });
+      
+      // Sauvegarder la page Events
+      await handleSavePageContent("events", {
+        "page-title": eventsData.pageTitle,
+        "subtitle": eventsData.subtitle,
+        "event-types-title": eventsData.eventTypesTitle,
+        "event-types-description": eventsData.eventTypesDescription,
+        "small-wedding-title": eventsData.smallWeddingTitle,
+        "small-wedding-description": eventsData.smallWeddingDescription,
+        "baptism-birthday-title": eventsData.baptismBirthdayTitle,
+        "baptism-birthday-description": eventsData.baptismBirthdayDescription,
+        "corporate-meal-title": eventsData.corporateMealTitle,
+        "corporate-meal-description": eventsData.corporateMealDescription,
+        "after-ceremony-meal-title": eventsData.afterCeremonyMealTitle,
+        "after-ceremony-meal-description": eventsData.afterCeremonyMealDescription,
+        "custom-menus-title": eventsData.customMenusTitle,
+        "custom-menus-description": eventsData.customMenusDescription,
+        "dedicated-service-title": eventsData.dedicatedServiceTitle,
+        "dedicated-service-description": eventsData.dedicatedServiceDescription,
+        "elegant-atmosphere-title": eventsData.elegantAtmosphereTitle,
+        "elegant-atmosphere-description": eventsData.elegantAtmosphereDescription,
+        "swiss-quality-title": eventsData.swissQualityTitle,
+        "swiss-quality-description": eventsData.swissQualityDescription
+      });
+      
+      return true;
+    } catch (error: any) {
+      console.error("Erreur lors de la sauvegarde:", error);
+      throw error;
+    }
+  };
+
   // Fonction pour déclencher le rebuild Vercel via Deploy Hook
+  // Sauvegarde TOUT avant de déployer
   const triggerRebuild = async () => {
     setRebuildStatus("rebuilding");
     try {
+      // D'abord sauvegarder toutes les modifications
+      showNotification("Sauvegarde de toutes les modifications...", "info");
+      await saveAllChanges();
+      
       // Utiliser directement le Vercel Deploy Hook
-      // Cette URL doit être configurée dans Vercel > Settings > Git > Deploy Hooks
       const vercelHookUrl = process.env.NEXT_PUBLIC_VERCEL_DEPLOY_HOOK_URL;
       
       if (!vercelHookUrl) {
         throw new Error("URL du webhook Vercel non configurée. Veuillez configurer NEXT_PUBLIC_VERCEL_DEPLOY_HOOK_URL dans les variables d'environnement.");
       }
 
+      showNotification("Déploiement du site en cours...", "info");
       const response = await fetch(vercelHookUrl, {
         method: "POST",
         headers: {
@@ -588,14 +772,14 @@ export default function AdminPage() {
       }
 
       setRebuildStatus("success");
-      showNotification("Le site est en cours de mise à jour. Les changements seront visibles dans 2-3 minutes.", "success");
+      showNotification("✅ Toutes les modifications ont été sauvegardées et le site est en cours de mise à jour. Les changements seront visibles dans 2-3 minutes.", "success");
       
       // Réinitialiser le statut après 5 secondes
       setTimeout(() => setRebuildStatus("idle"), 5000);
     } catch (error) {
       console.error("Erreur rebuild:", error);
       setRebuildStatus("error");
-      showNotification(`Erreur lors du rebuild: ${error instanceof Error ? error.message : "Erreur inconnue"}`, "error");
+      showNotification(`Erreur lors de la sauvegarde ou du déploiement: ${error instanceof Error ? error.message : "Erreur inconnue"}`, "error");
       setTimeout(() => setRebuildStatus("idle"), 5000);
     }
   };
@@ -1166,6 +1350,11 @@ export default function AdminPage() {
         {/* Page d'Accueil */}
         {activeTab === "home" && (
           <div className="space-y-6">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+              <p className="text-blue-800 font-medium">
+                💡 Modifiez les champs ci-dessous, puis cliquez sur <strong>"Mettre à jour le site"</strong> en haut à droite pour sauvegarder et publier toutes vos modifications.
+              </p>
+            </div>
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Modifier la Page d'Accueil</h2>
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page d'accueil</p>
@@ -1230,29 +1419,6 @@ export default function AdminPage() {
                     placeholder="Description..."
                   />
                 </div>
-                
-              <button
-                  onClick={handleSaveAbout}
-                  disabled={saving.about}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving.about ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Sauvegarder les modifications
-                    </>
-                  )}
-              </button>
             </div>
             </div>
           </div>
@@ -1261,6 +1427,11 @@ export default function AdminPage() {
         {/* Page Notre Histoire */}
         {activeTab === "about" && (
           <div className="space-y-6">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+              <p className="text-blue-800 font-medium">
+                💡 Modifiez les champs ci-dessous, puis cliquez sur <strong>"Mettre à jour le site"</strong> en haut à droite pour sauvegarder et publier toutes vos modifications.
+              </p>
+            </div>
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Modifier la Page "Notre Histoire"</h2>
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Notre Histoire</p>
@@ -1380,29 +1551,6 @@ export default function AdminPage() {
                   />
                   </div>
                 </div>
-                
-                    <button
-                  onClick={handleSaveContact}
-                  disabled={saving.contact}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving.contact ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Sauvegarder les modifications
-                    </>
-                  )}
-                    </button>
               </div>
             </div>
           </div>
@@ -1411,6 +1559,11 @@ export default function AdminPage() {
         {/* Page Contact */}
         {activeTab === "contact" && (
           <div className="space-y-6">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+              <p className="text-blue-800 font-medium">
+                💡 Modifiez les champs ci-dessous, puis cliquez sur <strong>"Mettre à jour le site"</strong> en haut à droite pour sauvegarder et publier toutes vos modifications.
+              </p>
+            </div>
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Modifier la Page Contact</h2>
               <p className="text-gray-600 mb-6">Modifiez les informations de contact et les textes</p>
@@ -1563,29 +1716,6 @@ export default function AdminPage() {
                     />
                   </div>
                 </div>
-                
-                    <button
-                  onClick={handleSaveContact}
-                  disabled={saving.contact}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving.contact ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Sauvegarder les modifications
-                    </>
-                  )}
-                    </button>
                   </div>
             </div>
           </div>
@@ -1594,6 +1724,11 @@ export default function AdminPage() {
         {/* Page Événements */}
         {activeTab === "events" && (
           <div className="space-y-6">
+            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-lg mb-6">
+              <p className="text-blue-800 font-medium">
+                💡 Modifiez les champs ci-dessous, puis cliquez sur <strong>"Mettre à jour le site"</strong> en haut à droite pour sauvegarder et publier toutes vos modifications.
+              </p>
+            </div>
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-2xl font-bold mb-4">Modifier la Page Événements</h2>
               <p className="text-gray-600 mb-6">Modifiez tous les textes de la page Événements</p>
@@ -1756,29 +1891,6 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </div>
-                
-                <button 
-                  onClick={handleSaveEvents}
-                  disabled={saving.events}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving.events ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Sauvegarder les modifications
-                    </>
-                  )}
-                </button>
               </div>
             </div>
           </div>
@@ -1948,29 +2060,6 @@ export default function AdminPage() {
                     ))}
                   </div>
                 </div>
-                
-                    <button
-                  onClick={handleSaveRestaurant}
-                  disabled={saving.restaurant}
-                  className="w-full px-6 py-3 bg-gradient-to-r from-green-600 to-green-700 text-white rounded-lg hover:from-green-700 hover:to-green-800 font-semibold shadow-lg hover:shadow-xl transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                >
-                  {saving.restaurant ? (
-                    <>
-                      <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                      </svg>
-                      Sauvegarde en cours...
-                    </>
-                  ) : (
-                    <>
-                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-                      </svg>
-                      Sauvegarder les modifications
-                    </>
-                  )}
-                    </button>
               </div>
             </div>
           </div>
